@@ -1003,7 +1003,7 @@ function clearAuras(){ auras.forEach(a=>scene.remove(a.group)); auras.length=0; 
 // 情報パネル（発掘済みの解説画像を現地に表示）
 // 画像はカード形式（縦長）。実際の縦横比で作り、出土品のすぐ上に置く。
 const infoPanels=[];
-const PANEL_BASE_H = 1.15;      // パネルの高さ（m）※幅は画像の比率から決まる
+const PANEL_BASE_H = 1.725;     // パネルの高さ（m）※幅は画像の比率から決まる（1.15の1.5倍）
 function showInfoPanel(idx, pos, color){
     texLoader.load(ART_IMGS[idx], tex=>{
         tex.colorSpace=THREE.SRGBColorSpace;

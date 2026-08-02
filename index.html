@@ -1366,32 +1366,134 @@ function buildHologram(idx){
 // 毎フレーム：左手の位置に追従。カードは常にプレイヤーを向く。モデルは左手の角度で回る
 function updateHologram(){
     if(!holo) return;
-    const g=holo.group, cam=camera.getWorldPosition(new THREE.Vector3());
-    const mg=g.userData.mg, card=g.userData.card;
-    const camDir=camera.getWorldDirection(new THREE.Vector3()); camDir.y=0; if(camDir.lengthSq()<1e-4) camDir.set(0,0,-1); camDir.normalize();
-    const viewYaw=Math.atan2(-camDir.x, -camDir.z);   // gの+x=プレイヤーの右／-z=奥 になるヨー
+
+    const g = holo.group;
+    const cam = camera.getWorldPosition(new THREE.Vector3());
+    const mg = g.userData.mg;
+    const card = g.userData.card;
+
+    // プレイヤーの向き
+    const camDir = camera.getWorldDirection(new THREE.Vector3());
+    camDir.y = 0;
+    if(camDir.lengthSq() < 1e-4) camDir.set(0,0,-1);
+    camDir.normalize();
+
+    const viewYaw = Math.atan2(-camDir.x, -camDir.z);
+
     if(renderer.xr.isPresenting && leftCtrl){
-        const base=leftCtrl.getWorldPosition(new THREE.Vector3()); base.y+=0.30;
+
+        // 左手の少し上にホログラム表示
+        const base = leftCtrl.getWorldPosition(new THREE.Vector3());
+        base.y += 0.30;
+
         g.position.lerp(base, 0.4);
-        g.rotation.set(0, viewYaw, 0);                                   // プレイヤー基準：カード左・モデル右を固定
-        if(card) card.lookAt(cam);                                      // カードは常にプレイヤーを向く
-        if(mg){ let hq;
-                if(leftCtrl.userData.isHand && leftCtrl.userData.grip){ hq=leftCtrl.userData.grip.getWorldQuaternion(new THREE.Quaternion()).multiply(GRIP_COMP_Q); }
-                else { hq=leftCtrl.getWorldQuaternion(new THREE.Quaternion()); }
-                mg.quaternion.copy(g.quaternion).invert().multiply(hq); }  // モデルは左手の角度で回る（グリップ空間＝手首回転を反映）
-    } else {
-        const dir=new THREE.Vector3(0,0,-1).applyQuaternion(camera.getWorldQuaternion(new THREE.Quaternion())); dir.y=0; if(dir.lengthSq()<1e-4) dir.set(0,0,-1); dir.normalize();
-        const base=cam.clone().addScaledVector(dir,1.1); base.y=cam.y-0.05;
-        g.position.lerp(base,0.25);
-        g.rotation.set(0, viewYaw, 0);                                   // デスクトップも同様にカード左・モデル右
+
+        // ホログラム全体はプレイヤー基準
+        g.rotation.set(0, viewYaw, 0);
+
+        // カードは常にプレイヤーを見る
         if(card) card.lookAt(cam);
-        if(mg) mg.rotation.y+=0.006;
+
+
+        // ============================
+        // 手をコントローラーとして扱う
+        // ============================
+        if(mg){
+
+            let hq;
+
+            if(leftCtrl.userData.isHand && leftCtrl.userData.grip){
+
+                // 現在の手首姿勢をそのまま取得
+                hq = leftCtrl.userData.grip
+                    .getWorldQuaternion(new THREE.Quaternion());
+
+                // 座標系補正のみ
+                hq.multiply(HAND_COMP_Q)
+                  .multiply(HOLO_FLIP_Q);
+
+            }else{
+
+                // 通常コントローラー
+                hq = leftCtrl.getWorldQuaternion(
+                    new THREE.Quaternion()
+                );
+            }
+
+            // gの回転を打ち消してモデルだけ回転
+            mg.quaternion
+              .copy(g.quaternion)
+              .invert()
+              .multiply(hq);
+        }
+
+    }else{
+
+        // デスクトップ時
+        const dir = new THREE.Vector3(0,0,-1)
+            .applyQuaternion(
+                camera.getWorldQuaternion(
+                    new THREE.Quaternion()
+                )
+            );
+
+        dir.y = 0;
+
+        if(dir.lengthSq()<1e-4)
+            dir.set(0,0,-1);
+
+        dir.normalize();
+
+
+        const base = cam.clone()
+            .addScaledVector(dir,1.1);
+
+        base.y = cam.y - 0.05;
+
+
+        g.position.lerp(base,0.25);
+
+        g.rotation.set(0,viewYaw,0);
+
+        if(card) card.lookAt(cam);
+
+        if(mg)
+            mg.rotation.y += 0.006;
     }
-    const now=performance.now(), ph=now*0.006;
-    if(holo.dino){ const m=holo.dino.userData.model;
-        if(m){ if(m.userData.legs) m.userData.legs.forEach(p=>{ p.rotation.x=Math.sin(ph+p.userData.phase)*0.3; });
-               if(m.userData.tail) m.userData.tail.rotation.y=Math.sin(now*0.003)*0.28;
-               if(m.userData.wings) m.userData.wings.forEach(w=>{ w.rotation.z=w.userData.sign*(0.22+Math.sin(now*0.004)*0.4); }); }
+
+
+    // ============================
+    // 恐竜アニメーション
+    // ============================
+    const now = performance.now();
+    const ph = now * 0.006;
+
+    if(holo.dino){
+
+        const m = holo.dino.userData.model;
+
+        if(m){
+
+            if(m.userData.legs){
+                m.userData.legs.forEach(p=>{
+                    p.rotation.x =
+                        Math.sin(ph+p.userData.phase)*0.3;
+                });
+            }
+
+            if(m.userData.tail){
+                m.userData.tail.rotation.y =
+                    Math.sin(now*0.003)*0.28;
+            }
+
+            if(m.userData.wings){
+                m.userData.wings.forEach(w=>{
+                    w.rotation.z =
+                        w.userData.sign *
+                        (0.22 + Math.sin(now*0.004)*0.4);
+                });
+            }
+        }
     }
 }
 function toggleHologram(idx){ if(idx<0) return; if(holo && holo.idx===idx) closeHologram(); else buildHologram(idx); }

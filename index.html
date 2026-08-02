@@ -72,6 +72,18 @@
     .seg button:first-child{ border-radius:8px 0 0 8px; } .seg button:last-child{ border-radius:0 8px 8px 0; }
     .seg button.on{ background:linear-gradient(135deg,#7c3aed,#1d4ed8); color:#fff; }
     .opt.wide{ grid-column:1/-1; }
+    /* 相棒（恐竜）選択：8種をグリッドで折り返す */
+    #segBuddy{ display:grid!important; grid-template-columns:repeat(4,1fr); gap:6px; }
+    #segBuddy button{ border-radius:9px!important; padding:11px 2px; font-size:12px; line-height:1.25; }
+    @media(max-width:520px){ #segBuddy{ grid-template-columns:repeat(2,1fr); } }
+    /* サイズ変更スライダー */
+    .slider{ -webkit-appearance:none; appearance:none; width:100%; height:8px; border-radius:99px; outline:none;
+        background:linear-gradient(90deg,#7c3aed,#38bdf8); margin:4px 0 2px; cursor:pointer; }
+    .slider::-webkit-slider-thumb{ -webkit-appearance:none; appearance:none; width:26px; height:26px; border-radius:50%;
+        background:#fff; border:3px solid #7c3aed; box-shadow:0 0 10px rgba(120,80,255,.7); cursor:pointer; }
+    .slider::-moz-range-thumb{ width:26px; height:26px; border-radius:50%; background:#fff; border:3px solid #7c3aed;
+        box-shadow:0 0 10px rgba(120,80,255,.7); cursor:pointer; }
+    #buddyScaleVal{ color:#c9bcff; font-weight:800; letter-spacing:1px; }
 
     .row{ width:100%; display:flex; gap:10px; }
     .ghost{ flex:1; padding:13px 0; border:1px solid rgba(180,140,255,.35); border-radius:11px;
@@ -99,19 +111,20 @@
         overscroll-behavior:contain; padding:2px 2px 8px; min-height:0; flex:1 1 auto; align-content:start; }
     @media(max-width:640px){ .dexgrid{ grid-template-columns:repeat(2,1fr); gap:10px; } }
     @media(max-width:380px){ .dexgrid{ grid-template-columns:1fr; } }
-    /* カード形式：中の画像は1:1。上下に余白を取り、そこにNo.と発掘日時を置く */
-    .dexcard{ position:relative; border-radius:12px; overflow:hidden; display:flex; flex-direction:column;
-        background:linear-gradient(160deg,#efe2c4,#dcc9a0); border:2px solid var(--parch-line);
-        padding:26px 8px 30px; }
-    .dexcard .no{ position:absolute; top:7px; left:0; right:0; text-align:center;
-        font-size:12px; font-weight:800; color:#7a6532; letter-spacing:2px; z-index:2; }
-    .dexcard .art{ position:relative; width:100%; padding-top:100%;   /* 1:1の画像枠 */
-        border-radius:6px; overflow:hidden; background:rgba(255,255,255,.35); }
+    /* トレカ風カード：縦横比 1:1.4、中央に 1:1 の画像、上にNo.・下に発掘日時 */
+    .dexcard{ position:relative; aspect-ratio:1/1.4; border-radius:14px; overflow:hidden; cursor:pointer;
+        display:flex; flex-direction:column; justify-content:space-between; align-items:center; padding:8px 8px;
+        background:linear-gradient(160deg,#f4e8cc,#e0cfa6); border:2px solid var(--parch-line);
+        box-shadow:0 4px 10px rgba(60,40,10,.22), inset 0 0 0 2px rgba(255,255,255,.35);
+        transition:transform .08s ease; }
+    .dexcard:active{ transform:scale(.97); }
+    .dexcard .no{ position:static; text-align:center; font-size:12px; font-weight:800; color:#7a6532; letter-spacing:2px; }
+    .dexcard .art{ position:relative; width:100%; aspect-ratio:1/1; flex:0 0 auto;   /* 1:1の画像枠 */
+        border-radius:8px; overflow:hidden; background:rgba(255,255,255,.4); box-shadow:inset 0 0 0 1px rgba(150,120,60,.28); }
     .dexcard .art img{ position:absolute; inset:0; width:100%; height:100%; object-fit:contain; }
     .dexcard .art .q{ position:absolute; inset:0; display:flex; align-items:center; justify-content:center;
         font-size:44px; color:rgba(180,160,220,.4); font-weight:900; }
-    .dexcard .stamp{ position:absolute; left:0; right:0; bottom:6px; text-align:center; z-index:2;
-        font-size:10px; line-height:1.35; color:#7a6532; letter-spacing:.5px; }
+    .dexcard .stamp{ position:static; text-align:center; font-size:10px; line-height:1.3; color:#7a6532; letter-spacing:.5px; }
     .dexcard .stamp .t{ opacity:.75; }
     .dexcard.locked{ background:linear-gradient(160deg,#20182e,#161022); border-color:rgba(150,130,190,.35); }
     .dexcard.locked .no{ color:rgba(180,160,220,.5); }
@@ -120,6 +133,27 @@
     .dexcard .newstamp{ position:absolute; top:8px; right:6px; transform:rotate(11deg);
         background:#e23b57; color:#fff; font-size:10px; font-weight:900; letter-spacing:1px;
         padding:3px 7px; border-radius:5px; box-shadow:0 2px 8px rgba(0,0,0,.35); z-index:3; }
+    /* タップで前面に拡大したトレカ */
+    #dexView{ position:fixed; inset:0; z-index:60; display:none; align-items:center; justify-content:center;
+        background:rgba(10,6,20,.72); backdrop-filter:blur(3px); padding:20px; }
+    #dexView.open{ display:flex; }
+    .dexview-card{ position:relative; width:min(340px,80vw); aspect-ratio:1/1.4; border-radius:18px; overflow:hidden;
+        display:flex; flex-direction:column; justify-content:space-between; align-items:center; padding:18px 16px;
+        background:linear-gradient(160deg,#f7edd4,#e2d1a8); border:3px solid #c9b384;
+        box-shadow:0 18px 50px rgba(0,0,0,.5), inset 0 0 0 3px rgba(255,255,255,.4); animation:dexpop .18s ease; }
+    @keyframes dexpop{ from{ transform:scale(.9); opacity:0; } to{ transform:scale(1); opacity:1; } }
+    .dexview-card.locked{ background:linear-gradient(160deg,#241a34,#170f24); border-color:rgba(150,130,190,.4); }
+    .dexview-card .no{ font-size:18px; font-weight:800; letter-spacing:3px; color:#7a6532; }
+    .dexview-card.locked .no{ color:rgba(190,170,225,.7); }
+    .dexview-card .art{ position:relative; width:100%; aspect-ratio:1/1; border-radius:12px; overflow:hidden;
+        background:rgba(255,255,255,.4); box-shadow:inset 0 0 0 2px rgba(150,120,60,.3); }
+    .dexview-card .art img{ position:absolute; inset:0; width:100%; height:100%; object-fit:contain; }
+    .dexview-card .art .q{ position:absolute; inset:0; display:flex; align-items:center; justify-content:center;
+        font-size:84px; color:rgba(180,160,220,.4); font-weight:900; }
+    .dexview-card .meta{ text-align:center; font-size:14px; line-height:1.55; color:#6e5a2e; letter-spacing:1px; font-weight:600; }
+    .dexview-card.locked .meta{ color:rgba(190,170,225,.6); }
+    .dexview-close{ position:absolute; top:14px; right:18px; background:none; border:none; color:#fff;
+        font-size:34px; line-height:1; cursor:pointer; z-index:2; touch-action:manipulation; }
     .dexclose{ position:absolute; top:12px; right:16px; background:none; border:none; color:rgba(230,210,160,.7);
         font-size:26px; cursor:pointer; line-height:1; }
     .dexclose:hover{ color:#fff; }
@@ -201,7 +235,7 @@
   <div class="menu-inner">
     <p class="kicker">ECHIZEN KOKUFU · EXCAVATION</p>
     <h1 class="title">越前国府発掘クエスト</h1>
-    <p class="subtitle">遺跡を歩いて探して、出土品を掘り当てよう。相棒の犬と一緒に。</p>
+    <p class="subtitle">遺跡を歩いて探して、出土品や恐竜を掘り当てよう。相棒の犬と一緒に。</p>
 
     <p id="loadingNote"><i></i>遺跡データを読み込み中…（完了すると開始できます）</p>
     <div id="vrbtnwrap"></div>
@@ -227,6 +261,20 @@
         <div class="seg" id="segBuddy"></div>
       </div>
       <div class="opt wide">
+        <div class="lbl">発掘する対象</div>
+        <div class="seg" id="segDig">
+          <button data-v="artifact" class="on">🏺 出土品</button>
+          <button data-v="dino">🦖 恐竜</button>
+        </div>
+      </div>
+      <div class="opt wide">
+        <div class="lbl">サイトモデル（遺跡の3D）※ARでは非表示にすると自分の部屋で発掘できます</div>
+        <div class="seg" id="segSite">
+          <button data-v="show" class="on">🗺 表示</button>
+          <button data-v="hide">🚫 非表示</button>
+        </div>
+      </div>
+      <div class="opt wide">
         <div class="lbl">コントローラー使用時の探知音（振動は常にON／素手のときは自動で音が鳴ります）</div>
         <div class="seg" id="segSound">
           <button data-v="off" class="on">🔇 鳴らさない</button>
@@ -238,11 +286,12 @@
     <div class="row">
       <button class="ghost" id="openDex">📖 発掘図鑑</button>
       <button class="ghost" id="openHelp">❓ あそび方</button>
+      <button class="ghost" id="openRecords">🏅 記録</button>
     </div>
 
     <p class="hint" id="menuHint">
       <b>探す</b>：歩いて反応をたどる。<b>掘る</b>：発掘ポイントでコントローラーを振る。<br>
-      <b>犬に聞く</b>：右手トリガー（素手なら右手でつまむ）。ヒントは外れることも。<br>
+      <b>恐竜に聞く</b>：右手トリガー（素手なら右手でつまむ）。ヒントは外れることも。<br>
       くわしくは「あそび方」をどうぞ。
     </p>
   </div>
@@ -260,6 +309,25 @@
   </div>
 </div>
 
+<!-- ═══ TOP5 記録モーダル ═══ -->
+<div id="taModal" style="position:fixed; inset:0; z-index:70; display:none; align-items:center; justify-content:center; background:rgba(10,6,20,.72); backdrop-filter:blur(3px); padding:20px;">
+  <div style="width:min(420px,92vw); background:linear-gradient(160deg,#1c1430,#140e24); border:2px solid #d8b46a; border-radius:18px; padding:22px; color:#efe6ff; box-shadow:0 18px 50px rgba(0,0,0,.5);">
+    <div style="text-align:center; font-size:22px; font-weight:800; color:#f0d98a; margin-bottom:6px;">🏅 タイムアタック TOP5</div>
+    <div style="text-align:center; font-size:12px; color:rgba(200,190,240,.7); margin-bottom:14px;">残り秒数×30 −（相棒に聞いた回数×10）</div>
+    <div id="taModalList"></div>
+    <div style="display:flex; gap:10px; margin-top:18px;">
+      <button id="taResetAll" style="flex:1; padding:11px; border-radius:10px; border:1px solid #a04b57; background:#3a1a22; color:#ffd0d6; font-weight:800; cursor:pointer;">すべての記録をリセット</button>
+      <button id="taModalClose" style="flex:1; padding:11px; border-radius:10px; border:1px solid #6a5c94; background:#241a34; color:#d9cbf5; font-weight:800; cursor:pointer;">閉じる</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ トレカ拡大表示 ═══ -->
+<div id="dexView">
+  <button class="dexview-close" id="dexViewClose">×</button>
+  <div class="dexview-card" id="dexViewCard"></div>
+</div>
+
 <!-- ═══ あそび方モーダル ═══ -->
 <div id="help">
   <div class="helpbox">
@@ -275,36 +343,36 @@
         <h3>⛏ 掘る</h3>
         <p>反応が強い場所まで来ると<b>土のブロック</b>が現れます。掘れる距離と向きが整うとブロックが<b>脈打つように光ります</b>。光っている間にブロックをタップ（PCはクリック／VRは狙って振る）すると発掘が進み、土が飛び散ってブロックが削れていきます。出土するとブロックは消えます。</p>
         <p class="k">スマホ：<b>光っているブロックをタップ</b>／PC：狙って左クリック／VR：狙ってコントローラー（または手）を振る</p>
-        <p>犬に聞かなくても、自分で反応をたどって見つければ発掘できます。</p>
+        <p>相棒に聞かなくても、自分で反応をたどって見つければ発掘できます。</p>
       </section>
       <section>
         <h3>🐾 相棒をなでる</h3>
         <p>相棒をなでると喜んでハートが舞います。<b>ブロックが光っている間は発掘が優先</b>されるので、相棒がブロックと重なっていても誤って撫でることはありません。光っていないときにタップすると喜びます。</p>
-        <p class="k">スマホ：<b>相棒をタップ</b>／PC：相棒に照準を合わせて左クリック／VR：相棒の頭に手を近づけて動かす</p>
+        <p class="k">スマホ：<b>相棒をタップ</b>／PC：相棒に照準を合わせて左クリック／VR：道具を持たず、相棒がこちらを向いている時に<b>手を往復（撫でる）</b>。撫でるほど当てる確率UP、頭上のキラキラで確率が分かります。</p>
       </section>
       <section>
         <h3>🖌 道具</h3>
         <p><b>幅広ブラシ</b>＝広く探せるが掘る回数が多い。<b>細ピック</b>＝探せる範囲は狭いが掘る回数が少ない。右手に持った道具の見た目も変わります。</p>
-        <p class="k">VR：<b>左手のトリガー</b>（素手なら左手でつまむ）／PC：Tキー・スマホ：「道具」ボタン</p>
+        <p class="k">VR：<b>右トリガーを引いている間</b>だけ道具が出て、狙って手を振ると掘れます（離すと手に戻る）。持ち替えは<b>左トリガー</b>やBボタン短押し／PC：Tキー・スマホ：「道具」ボタン</p>
       </section>
       <section>
-        <h3>🐶 相棒（犬に聞く）</h3>
-        <p>ワンちゃんは常に視界の前を歩きます。<b>聞くと発掘ポイントのヒント</b>をくれて、その場所まで歩いて<b>少し待って</b>くれます。ただし難しい出土品ほど<b>まちがえます</b>。</p>
-        <p class="k">VR：<b>右手のトリガー</b>（素手なら右手でつまむ）／PC：Qキー・スマホ：「犬に聞く」ボタン</p>
+        <h3>🐶 相棒（犬）</h3>
+        <p>相棒の犬は常に視界の前を歩きます。<b>聞くとヒント</b>をくれます（当たり/外れは着いてから分かります）。<b>撫でるほど当てる確率が上がり</b>、頭上のキラキラで今の確率が分かります。発掘中はヒント・撫でができません。</p>
+        <p class="k">VR：ヒントは<b>右トリガーを2回連続</b>（素手なら2回つまむ）またはAボタン／PC：Qキー・スマホ：ボタン</p>
       </section>
       <section>
         <h3>🗺 モード</h3>
-        <p><b>じっくりコレクション</b>：8種を順番に発掘。後の出土品ほど反応範囲が狭く、掘る回数も増え、犬も外しやすくなります。</p>
-        <p><b>タイムアタック</b>：<b>右トリガー</b>（PC：スペース／スマホ：「スタート」）で図鑑をリセットし、3秒のカウントダウン後にスタート。時間切れになると、その場に<b>結果とTOP5</b>が表示されます（歩き回れます）。もう一度押すと記録を閉じ、さらにもう一度押すとリセットして再挑戦。ワールドから出ずに何度でも挑戦できます。</p>
+        <p><b>じっくりコレクション</b>：8種を順番に発掘。後の出土品ほど反応範囲が狭く、掘る回数も増え、相棒も外しやすくなります。</p>
+        <p><b>タイムアタック</b>：スタンバイで<b>右トリガー2回連続</b>（PC：スペース）→3秒カウントダウン→スタート。<b>8種を掘り切ると終了</b>し、スコア＝<b>発掘ポイント＋残り秒×30 −（相棒に聞いた回数×10）</b>。結果とTOP5が表示されます。結果を閉じる／再挑戦も<b>右トリガー2回連続</b>（左手の図鑑近くに「▶▶2回押し」のサインが出ます）。<b>Ｙボタン長押し</b>で図鑑リセット（成功するとバイブと音でお知らせ・TAはスタンバイに戻る）。じっくりコレクションもコンプリート後は<b>右トリガー2回連続</b>でリセット＆再開。カウントダウン／残り時間は発掘図鑑の近く（左手）に出ます。PCは「🏅記録」ボタンでTOP5の確認・全リセットができます。</p>
       </section>
       <section>
         <h3>📖 発掘図鑑</h3>
         <p>発掘するとシルエットが解除され、NEWスタンプと日付が記録されます（全8種）。記録は端末に保存され、リセットもできます。</p>
-        <p class="k">VR：左の手のひらを返すと表示（Yボタンで固定）／PC・スマホ：「図鑑」ボタン</p>
+        <p class="k">VR：左手側に<b>常に表示</b>（手や角度を気にせず見られます）／PC・スマホ：「図鑑」ボタン。カードを右手で指して<b>右トリガー</b>（素手なら右つまみ）で拡大ホログラム。</p>
       </section>
       <section>
         <h3>🎮 移動</h3>
-        <p class="k">VR：左スティックで歩く／右スティックでスナップ回転<br>PC：WASD＋マウス（クリックで視点固定）<br>スマホ：画面左半分でスティック／右半分をなぞって見回す</p>
+        <p class="k">VR/AR：左スティックで歩く／右スティックでスナップ回転<br>右手の中指グリップを押しながら 右スティック上下＝サイトの高さ調整／左右＝相棒との距離調整<br>PC：WASD＋マウス（クリックで視点固定）<br>スマホ：画面左半分でスティック／右半分をなぞって見回す</p>
       </section>
     </div>
   </div>
@@ -323,10 +391,12 @@
       <span class="k">左クリック</span> 掘る
     </span>
     <button id="dTA" style="display:none">▶ スタート（記録リセット）</button>
-    <button id="dBuddy" style="display:none">相棒：🐶</button>
-    <button id="dAsk">🐶 犬に聞く</button>
+    <button id="dBuddy" style="display:none">相棒：🦖</button>
+    <button id="dAsk">🦖 きいてみる</button>
     <button id="dTool">道具：🖌 幅広</button>
+    <button id="dSite">🗺 サイト：表示</button>
     <button id="dDex">📖 図鑑</button>
+    <button id="dRecords">🏅 記録</button>
     <button id="dQuit">やめる</button>
   </div>
 </div>
@@ -346,6 +416,7 @@
 import * as THREE from "three";
 import {GLTFLoader} from "three/addons/loaders/GLTFLoader.js";
 import {VRButton} from "three/addons/webxr/VRButton.js";
+import {ARButton} from "three/addons/webxr/ARButton.js";
 import {XRControllerModelFactory} from "three/addons/webxr/XRControllerModelFactory.js";
 
 /* =====================================================
@@ -356,15 +427,22 @@ const GROUND_Y      = 0;
 let   FIELD_R       = 18;                 // 発掘フィールド半径（m）※発掘場所に合わせ後で拡張
 const SITE_FIT_DIAM = 34;                 // サイトモデルをこの直径(m)に自動フィット
 const ART_TARGET_H  = 0.55;               // 出土品モデルを高さ約this(m)に自動フィット
-const ARTIFACT_POP_Y= 1.2;               // 出土品が落ち着く高さ（目線より少し下）
+const ARTIFACT_POP_Y= 0.95;              // 出土品/恐竜が落ち着く高さ（少し低め。パネルもこれに追従）
 const WALK_SPEED    = 3.5;               // 歩行速度（m/s）
 const SNAP_DEG      = 30;                 // スナップ回転
 const DOG_SIDE      = 0.15;              // 犬の定位置：横オフセット（m）中央寄り
 const DIG_BLOCK     = 0.85;              // 掘れるブロックの一辺（m）※マイクラ風の当たり判定
 const DIG_REACH     = 4.0;               // 掘れる距離（m）
 const PET_REACH     = 6.0;               // 相棒をなでられる距離（m）※定位置(DOG_FWD)より必ず大きく
-const DOG_Y         = -0.2;              // 犬の接地高さ補正（m。少し下げる）
-const DOG_FWD       = 3.4;               // 犬の定位置：前方オフセット（m）
+const DOG_Y         = 0;                 // 犬の接地高さ補正（実際の床付近を歩く）
+let   DOG_FWD       = 3.4;               // 犬の定位置：前方オフセット（m）※VR/ARで調整可
+// VR/AR：右中指グリップ＋右スティックで調整するパラメータ
+const WORLD_H_SPEED = 1.0;               // ワールド高さ調整の速さ（m/秒）
+const DOG_DIST_SPEED= 2.2;               // 相棒距離調整の速さ（m/秒）
+const WORLD_BASE_Y = -1.5;               // VR/ARでのワールド高さ基準（最も低い位置）
+let worldBaseY=0, worldYAdjust=0;        // 全コンテンツ(stage)の高さ
+function adjustWorldHeight(dy){ if(typeof stage==="undefined") return; worldYAdjust=Math.max(WORLD_BASE_Y-2.0, Math.min(WORLD_BASE_Y+2.0, worldYAdjust+dy)); stage.position.y = worldYAdjust; }
+function adjustDogDist(dd){ DOG_FWD=Math.max(0.5, Math.min(5.5, DOG_FWD+dd)); }
 const DOG_STAY_R    = 7.0;               // ブロック横で待つ範囲（これ以上離れたらプレイヤーに付いてくる）
 const SITE_Y_OFFSET = 0;                 // サイトの高さ微調整（m。地面は自動で足元に合わせる）
 // 最初のHTMLと同じ発掘場所（サイトのネイティブ座標。全体リスケールに追従させる）
@@ -377,6 +455,9 @@ const ART_FILES  = ["model01_small.glb","model02_small.glb","model03_small.glb",
                     "model05_small.glb","model06_small.glb","model07_small.glb","model08_small.glb"];
 const ART_IMGS   = ["40100","40200","40300","40400","40500","40600","40700","40800"]
                     .map(n=>IMG_BASE+n+"_kokufuhakkutsu3.png");
+// 恐竜の説明パネル画像（8種）。※パスは後で共有される予定。空文字のあいだはプレースホルダー表示。
+//   順番は DINOS と同じ：0ティラノ 1トリケラ 2ステゴ 3ブラキオ 4プテラノ 5フクイラプトル 6フクイサウルス 7フクイティタン
+const DINO_IMGS  = ["", "", "", "", "", "", "", ""];
 const TIME_LIMIT = 100; // タイムアタック秒数
 
 /* =====================================================
@@ -389,7 +470,19 @@ function loadTA(){ try{ return JSON.parse(localStorage.getItem(TA_KEY)||"[]"); }
 function saveTA(a){ localStorage.setItem(TA_KEY, JSON.stringify(a)); }
 // 発掘図鑑は「その回のプレイ」だけの記録。保存はせず、リロードで必ず空になる。
 try{ localStorage.removeItem(DEX_KEY); }catch(e){}
-let dexData = {};
+let dexArt = {}, dexDino = {};
+let curTarget = "artifact";                 // 発掘対象（発掘図鑑もこれに追従）
+let dexData = dexArt;
+function curImgs(){ return curTarget==="dino" ? DINO_IMGS : ART_IMGS; }
+function curName(i){ return curTarget==="dino" ? ((typeof DINOS!=="undefined"&&DINOS[i]? DINOS[i].label : "")||"").replace(/^\S+\s*/,"") : ""; }
+function setDigTarget(target){
+    curTarget = (target==="dino") ? "dino" : "artifact";
+    dexData = (curTarget==="dino") ? dexDino : dexArt;
+    chosenDigTarget = curTarget;
+    if(typeof GAME!=="undefined" && GAME) GAME.digTarget = curTarget;
+    if(typeof refreshDexHTML==="function") refreshDexHTML();
+    if(typeof updateGoal==="function") updateGoal();
+}
 function saveDex(){ /* 保存しない（リロードでリセットするため） */ }
 
 /* =====================================================
@@ -437,6 +530,14 @@ const sfxExcavate = ()=> chord([523,659,784,1047],0.09,"triangle",0.5);// 出土
 const sfxBark     = ()=>{ beep(520,0.08,0.3,"square"); setTimeout(()=>beep(430,0.1,0.28,"square"),90); };
 const sfxComplete = ()=> chord([523,659,784,1047,1319],0.11,"triangle",0.55);
 const sfxTimeUp   = ()=> chord([880,660,440,330],0.15,"sawtooth",0.4);
+// 恐竜の鳴き声（下降するうなり）
+function sfxCry(){
+    const t=audioCtx.currentTime;
+    [190,150,110].forEach((f,i)=>{ const o=audioCtx.createOscillator(), g=audioCtx.createGain();
+        o.type="sawtooth"; o.frequency.setValueAtTime(f, t); o.frequency.exponentialRampToValueAtTime(Math.max(50,f*0.55), t+0.45);
+        g.gain.setValueAtTime(0.0001,t); g.gain.exponentialRampToValueAtTime(0.22,t+0.03); g.gain.exponentialRampToValueAtTime(0.0001,t+0.55);
+        o.connect(g); g.connect(audioCtx.destination); o.start(t); o.stop(t+0.6); });
+}
 
 /* =====================================================
  * シーン / レンダラ / カメラ / プレイヤーリグ
@@ -445,7 +546,7 @@ const scene    = new THREE.Scene();
 scene.background = new THREE.Color(0x0a0a16);
 scene.fog = new THREE.FogExp2(0x0a0a16, 0.006);
 
-const renderer = new THREE.WebGLRenderer({antialias:true});
+const renderer = new THREE.WebGLRenderer({antialias:true, alpha:true});
 renderer.setPixelRatio(window.devicePixelRatio);
 renderer.setSize(window.innerWidth, window.innerHeight);
 renderer.xr.enabled = true;
@@ -465,19 +566,33 @@ scene.add(new THREE.HemisphereLight(0xbcd3ff, 0x2a2438, 1.1));
 const sun = new THREE.DirectionalLight(0xfff2d8, 1.4);
 sun.position.set(30, 60, 20); scene.add(sun);
 scene.add(new THREE.AmbientLight(0x404060, 0.5));
+const stage = new THREE.Group(); scene.add(stage);   // プレイヤー以外の全コンテンツ（高さ調整でまとめて上下）
 
-// VRButton
-document.getElementById("vrbtnwrap").appendChild(VRButton.createButton(renderer));
+// VRButton / ARButton（どちらでも遊べる）
+document.getElementById("vrbtnwrap").appendChild(VRButton.createButton(renderer, { optionalFeatures:["hand-tracking","local-floor","bounded-floor"] }));
+try{
+    const arBtn = ARButton.createButton(renderer, { optionalFeatures:["local-floor","bounded-floor","hand-tracking"] });
+    document.getElementById("vrbtnwrap").appendChild(arBtn);
+}catch(e){ console.warn("ARButton unavailable", e); }
 
 /* ── コントローラ ── */
 const ctrlFactory = new XRControllerModelFactory();
+// 右手用の簡易ハンド（肌色）。道具と同じコントローラーに付け、右手だけ表示
+function buildSimpleHand(){
+    const g=new THREE.Group(); const mat=new THREE.MeshStandardMaterial({color:0xe6b48c, roughness:0.85});
+    const palm=new THREE.Mesh(new THREE.BoxGeometry(0.085,0.032,0.10), mat); palm.position.set(0,-0.015,-0.02); g.add(palm);
+    for(let i=0;i<4;i++){ const f=new THREE.Mesh(new THREE.BoxGeometry(0.017,0.017,0.055), mat); f.position.set(-0.031+i*0.021,-0.017,-0.085); g.add(f); }   // 指（手のひら側へ寄せすぎたので0.5cm甲側へ）
+    const thumb=new THREE.Mesh(new THREE.BoxGeometry(0.018,0.018,0.045), mat); thumb.position.set(-0.05,-0.017,-0.03); thumb.rotation.y=0.6; g.add(thumb);  // 親指を他の指と同じ手のひら距離に
+    g.rotation.set(0.5, 0, -Math.PI/2);   // 手のひらの向き＋全体を90度回転
+    return g;
+}
 const controllers = [];
 for(let i=0;i<2;i++){
     const c = renderer.xr.getController(i);
     player.add(c); controllers.push(c);
     const grip = renderer.xr.getControllerGrip(i);
-    grip.add(ctrlFactory.createControllerModel(grip));
-    player.add(grip);
+    player.add(grip); c.userData.grip = grip;   // グリップ空間（物理的な手の向き＝手首の回転を拾う）
+    c.userData.handModel = buildSimpleHand(); c.add(c.userData.handModel);   // 手モデル（右手だけ表示。道具と同じ座標系）
     // レーザー（掘る照準用）
     const line = new THREE.Line(
         new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(0,0,0), new THREE.Vector3(0,0,-1)]),
@@ -487,10 +602,53 @@ for(let i=0;i<2;i++){
     c.userData.shakeSpeed = 0;
     c.userData.index = i;
 }
+// 手モデルは右手だけ表示。ハンド時は「グリップ空間（物理的な手＝手首の回転を拾う）」から向きを取る
+const _hmq1=new THREE.Quaternion(), _hmq2=new THREE.Quaternion();
+function updateHandModels(){
+    for(const c of controllers){
+        const hm=c.userData.handModel; if(!hm) continue;
+        hm.visible = (c.userData.handedness==="right");
+        if(c.userData.isHand && c.userData.grip){
+            const world=c.userData.grip.getWorldQuaternion(_hmq1).multiply(HM_BASE_Q).multiply(GRIP_COMP_Q);   // world = grip × 基本姿勢
+            hm.quaternion.copy(c.getWorldQuaternion(_hmq2).invert()).multiply(world);                          // ローカル化
+        } else {
+            hm.quaternion.copy(HM_BASE_Q);
+        }
+    }
+    // 発掘道具：ハンド時はグリップ空間から向きを取る（手首の回転がコントローラーのように反映）
+    if(rightCtrl && rightCtrl.userData.isHand && rightCtrl.userData.grip){
+        const world=rightCtrl.userData.grip.getWorldQuaternion(_hmq1).multiply(TOOL_BASE_Q).multiply(GRIP_COMP_Q);
+        toolHolder.quaternion.copy(rightCtrl.getWorldQuaternion(_hmq2).invert()).multiply(world);
+        toolHolder.position.copy(TOOL_POS_HAND);
+    } else {
+        toolHolder.quaternion.copy(TOOL_BASE_Q);
+        toolHolder.position.copy(TOOL_POS_CTRL);
+    }
+    // 発掘図鑑ホルダー：ハンド時は世界基準（上向き固定）にして、タイマーが図鑑の上に来るように
+    if(leftCtrl && leftCtrl.userData.isHand) dexHolder.quaternion.copy(leftCtrl.getWorldQuaternion(_hmq1).invert());
+    else dexHolder.quaternion.identity();
+}
 // 左右の解決：connected イベントの handedness を信頼（0/1の並びは環境依存のため）
 let leftCtrl = controllers[1], rightCtrl = controllers[0]; // 既定（0=右, 1=左）
 const dexHolder  = new THREE.Group();  // 左手のひら側：発掘図鑑
 const toolHolder = new THREE.Group();  // 右手：発掘道具モデル
+toolHolder.visible=false;              // 既定は非表示（トリガーを押している間だけ表示）
+toolHolder.position.set(-0.05, -0.03, -0.05);  // 手のひら側（内側）へ
+toolHolder.rotation.set(-0.6, 0, 0);           // 握って前下に構えた角度（既定＝コントローラー）
+// ハンドトラッキング補正：基準姿勢を「手のひら下向き」→「手のひら向かい合わせ」にするため、前後軸(z)まわりに90度ロール
+const HAND_ROLL_ANGLE = Math.PI/2;             // 調整可（符号を変えると逆回り）
+const HAND_COMP_Q = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0,0,1), HAND_ROLL_ANGLE);
+const HM_BASE_E   = new THREE.Euler(0.5, 0, -Math.PI/2);          // 手モデルの基本姿勢（コントローラー基準）
+const HM_BASE_Q   = new THREE.Quaternion().setFromEuler(HM_BASE_E);
+const TOOL_ELEV = Math.PI*100/180;             // 仰角方向（ピッチ）に約100度。先端を親指/人差し指側へ
+const TOOL_BASE_E = new THREE.Euler(-0.6+TOOL_ELEV, 0, 0);        // 道具の基本姿勢（コントローラー基準）
+const TOOL_BASE_Q = new THREE.Quaternion().setFromEuler(TOOL_BASE_E);
+const GRIP_COMP_Q = new THREE.Quaternion();    // ハンド時（グリップ空間）の標準姿勢の微調整（既定＝なし。ズレたらここで補正）
+const HOLO_FLIP_Q = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0,0,1), Math.PI);  // ハンド時：モデルの上下逆を直す（Z軸180度）
+const TOOL_POS_CTRL = new THREE.Vector3(-0.05,-0.03,-0.05);       // コントローラー時の道具位置
+const TOOL_POS_HAND = new THREE.Vector3(-0.06, 0.02, 0.03);       // ハンド時：位置調整（y=0.02）
+let rightHeld=false, lastRightPress=0; // 右トリガー/つまみの保持状態・二回連続判定
+let rightDownAt=0, toolActive=false;   // 押し始め時刻・道具アクティブ（0.22秒保持で有効＝2回押しの一瞬表示を防ぐ）
 function attachAccessories(){
     if(leftCtrl  && dexHolder.parent  !== leftCtrl)  leftCtrl.add(dexHolder);
     if(rightCtrl && toolHolder.parent !== rightCtrl) rightCtrl.add(toolHolder);
@@ -505,15 +663,19 @@ controllers.forEach(c=>{
         attachAccessories();
     });
     c.addEventListener("disconnected", ()=>{ c.userData.handedness=null; c.userData.isHand=false; });
-    // ハンドトラッキング：右手のつまみ＝進行/相棒に聞く／左手のつまみ＝道具の持ち替え
+    // ハンドトラッキング：右つまみ＝道具を持つ（離すと手に戻る）／二回連続つまみ＝相棒に聞く／左つまみ＝道具の持ち替え
     c.addEventListener("selectstart", ()=>{
-        if(!GAME.active || !c.userData.isHand) return;
-        if(c.userData.handedness==="right"){ if(!taAdvance()) askDog(); }
-        else { toggleTool(); }
+        if(!c.userData.isHand) return;
+        if(c.userData.handedness==="right"){ if(GAME.active){ rightHeld=true; rightDownAt=performance.now(); onRightPressEdge(); } }
+        else if(GAME.active){ toggleTool(); }
+    });
+    c.addEventListener("selectend", ()=>{
+        if(!c.userData.isHand) return;
+        if(c.userData.handedness==="right"){ rightHeld=false; }
     });
 });
 attachAccessories();
-// 手（ハンドトラッキング）— コントローラー非装着時のフォールバック（音のみ）
+// 手（ハンドトラッキング）— 指先の探査に使用（見た目はコントローラー側の手モデルを共用）
 let hands=[];
 try{
     hands = [renderer.xr.getHand(0), renderer.xr.getHand(1)];
@@ -528,10 +690,24 @@ try{
 const gltfLoader = new GLTFLoader();
 let siteReady=false;
 document.body.classList.add("loading");   // 読み込み完了までゲーム開始を無効化
-const world = new THREE.Group(); scene.add(world);
+const world = new THREE.Group(); stage.add(world);
 const ARTPOS = new Array(8).fill(null);   // 各出土品の確定ワールド座標（地面）
+let siteRoot=null, siteVisible=true, inAR=false;
+// サイト非表示時の代替地面（ARでは実世界が地面なので出さない）
+const fallbackGround=new THREE.Group();
+(function(){
+    const disc=new THREE.Mesh(new THREE.CircleGeometry(30,48), new THREE.MeshStandardMaterial({color:0x241f33, roughness:1}));
+    disc.rotation.x=-Math.PI/2; disc.position.y=GROUND_Y-0.02; fallbackGround.add(disc);
+    const grid=new THREE.GridHelper(60,40,0x6a5fa0,0x3a3160); grid.position.y=GROUND_Y; grid.material.transparent=true; grid.material.opacity=0.5; fallbackGround.add(grid);
+    fallbackGround.visible=false; stage.add(fallbackGround);
+})();
+function updateSiteVis(){
+    if(siteRoot) siteRoot.visible = siteVisible;                 // ARでも表示/非表示どちらでも体験可
+    fallbackGround.visible = (!siteVisible) && !inAR;            // 非表示かつ非ARのときだけ代替地面
+}
+function setSiteVisible(v){ siteVisible=!!v; updateSiteVis(); }
 gltfLoader.load(SITE_GLB, (gltf)=>{
-    const siteRoot = gltf.scene;
+    siteRoot = gltf.scene;
     siteRoot.rotation.y = THREE.MathUtils.degToRad(-90);   // 元と同じ向き
     world.add(siteRoot);
     // 発掘スポットのプレースホルダ（元HTMLと同じ相対配置＝サイトのネイティブ座標）
@@ -574,7 +750,8 @@ gltfLoader.load(SITE_GLB, (gltf)=>{
     }
     siteRoot.position.y += SITE_Y_OFFSET / fit;      // 追加の微調整（既定0）
     world.updateMatrixWorld(true);
-    siteReady=true;
+    worldBaseY = world.position.y;        // 高さ調整の基準
+    siteReady=true; updateSiteVis();
     document.body.classList.remove("loading");
 }, undefined, (e)=>{ console.warn("site load failed", e); siteReady=true; document.body.classList.remove("loading"); });
 function afterSite(cb){ if(siteReady) cb(); else { const iv=setInterval(()=>{ if(siteReady){ clearInterval(iv); cb(); } }, 100); } }
@@ -588,7 +765,7 @@ ART_FILES.forEach((f,idx)=>{
         const size=box.getSize(new THREE.Vector3());
         const fit=ART_TARGET_H/Math.max(size.x,size.y,size.z,0.001);
         o.scale.setScalar(fit);
-        o.visible=false; scene.add(o); artModels[idx]=o;
+        o.visible=false; stage.add(o); artModels[idx]=o;
     }, undefined, ()=>{ /* 失敗しても続行 */ });
 });
 // 図鑑カード用の画像テクスチャ（発掘演出パネル）
@@ -599,31 +776,332 @@ const texLoader = new THREE.TextureLoader();
  *   dog … 移動を担うルート。実際の見た目は子の「ボディ」グループが持つ（差し替え可能）。
  * ===================================================== */
 const dog = new THREE.Group();          // 相棒のルート（位置・向きはこれを動かす）
-const dogBody  = new THREE.Group();     // イヌ
 
-(function buildDog(){
-    const bodyMat = new THREE.MeshStandardMaterial({color:0xc99a5b, roughness:0.8});
-    const darkMat = new THREE.MeshStandardMaterial({color:0x8a6636, roughness:0.8});
-    const body = new THREE.Mesh(new THREE.BoxGeometry(0.9,0.55,1.5), bodyMat); body.position.y=0.75; dogBody.add(body);
-    const head = new THREE.Mesh(new THREE.BoxGeometry(0.6,0.55,0.6), bodyMat); head.position.set(0,1.05,0.95); dogBody.add(head);
-    const snout= new THREE.Mesh(new THREE.BoxGeometry(0.32,0.28,0.4), darkMat); snout.position.set(0,0.95,1.3); dogBody.add(snout);
-    const nose = new THREE.Mesh(new THREE.SphereGeometry(0.09,10,10), new THREE.MeshStandardMaterial({color:0x221a12})); nose.position.set(0,0.98,1.52); dogBody.add(nose);
-    [[-0.2,1.42,0.85],[0.2,1.42,0.85]].forEach(p=>{ const ear=new THREE.Mesh(new THREE.ConeGeometry(0.13,0.35,4),darkMat); ear.position.set(p[0],p[1],p[2]); dogBody.add(ear); });
-    const legs=[];
-    [[-0.28,0.28,0.5],[0.28,0.28,0.5],[-0.28,0.28,-0.5],[0.28,0.28,-0.5]].forEach((p,i)=>{
-        const pivot=new THREE.Group(); pivot.position.set(p[0],0.55,p[2]); dogBody.add(pivot);   // 股関節ピボット
-        const leg=new THREE.Mesh(new THREE.CylinderGeometry(0.11,0.11,0.55,8),darkMat); leg.position.set(0,-0.27,0); pivot.add(leg);
-        pivot.userData.phase = (i===0||i===3)?0:Math.PI;   // 対角の足を同位相に
-        legs.push(pivot);
-    });
-    dogBody.userData.legs=legs;
-    const tail=new THREE.Mesh(new THREE.CylinderGeometry(0.07,0.11,0.6,8),bodyMat); tail.position.set(0,0.95,-0.85); tail.rotation.x=-0.9; dogBody.add(tail); dogBody.userData.tail=tail;
-    // 目
-    [[-0.16,1.12,1.22],[0.16,1.12,1.22]].forEach(p=>{ const eye=new THREE.Mesh(new THREE.SphereGeometry(0.06,10,10), new THREE.MeshStandardMaterial({color:0x1a140c})); eye.position.set(p[0],p[1],p[2]); dogBody.add(eye); });
-})();
+/* ── 3Dドット（マイクラ風ボクセル）ビルダー ───────────────────────
+ *  大きめの立方体で頭は大きなキューブ・胴/脚/尾は直方体という
+ *  Minecraftのモブ風。左右対称(mirrorX)を強制し、恐竜の特徴を表現。
+ *  脚・尾・翼は別グループ(userData.legs/tail/wings)でアニメを維持。      */
+const VOX=0.10;                         // 立方体サイズ（マイクラ感を保ちつつ特徴が出る粗さ）
+const EYE=0x141414, WHTE=0xefe3c2;
+const _voxMat=new THREE.MeshStandardMaterial({vertexColors:true, roughness:0.9, metalness:0.0, side:THREE.DoubleSide});
+function _rgb(hex){ return [((hex>>16)&255)/255, ((hex>>8)&255)/255, (hex&255)/255]; }
 
-scene.add(dog);
-dog.scale.setScalar(0.35);
+function Chunk(){ this.v=new Map(); }
+Chunk.prototype.set=function(ix,iy,iz,c){ this.v.set(ix+"|"+iy+"|"+iz, c); };
+Chunk.prototype.box=function(x0,y0,z0,x1,y1,z1,c){
+  const ax0=Math.round(Math.min(x0,x1)/VOX),ax1=Math.round(Math.max(x0,x1)/VOX);
+  const ay0=Math.round(Math.min(y0,y1)/VOX),ay1=Math.round(Math.max(y0,y1)/VOX);
+  const az0=Math.round(Math.min(z0,z1)/VOX),az1=Math.round(Math.max(z0,z1)/VOX);
+  for(let ix=ax0;ix<=ax1;ix++)for(let iy=ay0;iy<=ay1;iy++)for(let iz=az0;iz<=az1;iz++) this.set(ix,iy,iz,c);
+};
+Chunk.prototype.ellip=function(cx,cy,cz,rx,ry,rz,c){
+  const i0=Math.floor((cx-rx)/VOX),i1=Math.ceil((cx+rx)/VOX);
+  const j0=Math.floor((cy-ry)/VOX),j1=Math.ceil((cy+ry)/VOX);
+  const k0=Math.floor((cz-rz)/VOX),k1=Math.ceil((cz+rz)/VOX);
+  for(let ix=i0;ix<=i1;ix++)for(let iy=j0;iy<=j1;iy++)for(let iz=k0;iz<=k1;iz++){
+    const dx=(ix*VOX-cx)/rx, dy=(iy*VOX-cy)/ry, dz=(iz*VOX-cz)/rz;
+    if(dx*dx+dy*dy+dz*dz<=1.05) this.set(ix,iy,iz,c);
+  }
+};
+// 左右対称を強制（x>0 の各ボクセルの鏡像を x<0 に複製）
+Chunk.prototype.mirrorX=function(){
+  const add=[];
+  for(const [key,c] of this.v){ const p=key.split("|"); const ix=+p[0]; if(ix!==0) add.push([-ix,+p[1],+p[2],c]); }
+  for(const a of add) this.set(a[0],a[1],a[2],a[3]);
+};
+// 目：顔の「最前面ボクセル」を黒く塗り替えるだけ（新しく前へ足さない＝飛び出さない）。
+// r で大きさ調整。内側は中央(index0)を空けて左右の黒目が正面でつながらないようにする。
+Chunk.prototype.eye=function(x,y,z,r){
+  r=r||1;
+  const s=x<0?-1:1, hw=0.045*r, hh=0.058*r;
+  const cx=s*Math.max(0.07+hw, Math.abs(x));
+  const ix0=Math.round((cx-hw)/VOX), ix1=Math.round((cx+hw)/VOX);
+  const iy0=Math.round((y-hh)/VOX), iy1=Math.round((y+hh)/VOX);
+  const izmin=Math.round((z-0.4)/VOX), izmax=Math.round((z+0.12)/VOX);
+  for(let ix=ix0;ix<=ix1;ix++) for(let iy=iy0;iy<=iy1;iy++){
+    for(let iz=izmax;iz>=izmin;iz--){ if(this.v.has(ix+"|"+iy+"|"+iz)){ this.set(ix,iy,iz,EYE); break; } }  // 最前面を黒に
+  }
+};
+Chunk.prototype.build=function(){
+  const pos=[],nor=[],col=[],idx=[]; let vi=0; const H=VOX*0.5, v=this.v;
+  const has=(x,y,z)=>v.has(x+"|"+y+"|"+z);
+  const F=[
+    [[1,0,0],[[1,-1,-1],[1,1,-1],[1,1,1],[1,-1,1]]],
+    [[-1,0,0],[[-1,-1,1],[-1,1,1],[-1,1,-1],[-1,-1,-1]]],
+    [[0,1,0],[[-1,1,-1],[-1,1,1],[1,1,1],[1,1,-1]]],
+    [[0,-1,0],[[-1,-1,1],[-1,-1,-1],[1,-1,-1],[1,-1,1]]],
+    [[0,0,1],[[-1,-1,1],[1,-1,1],[1,1,1],[-1,1,1]]],
+    [[0,0,-1],[[1,-1,-1],[-1,-1,-1],[-1,1,-1],[1,1,-1]]],
+  ];
+  for(const [key,c] of v){ const p=key.split("|"), ix=+p[0],iy=+p[1],iz=+p[2];
+    const cx=ix*VOX, cy=iy*VOX, cz=iz*VOX, rgb=_rgb(c);
+    for(let fi=0;fi<6;fi++){ const n=F[fi][0];
+      if(has(ix+n[0],iy+n[1],iz+n[2])) continue;
+      const cr=F[fi][1];
+      for(let q=0;q<4;q++){ pos.push(cx+cr[q][0]*H, cy+cr[q][1]*H, cz+cr[q][2]*H); nor.push(n[0],n[1],n[2]); col.push(rgb[0],rgb[1],rgb[2]); }
+      idx.push(vi,vi+1,vi+2, vi,vi+2,vi+3); vi+=4;
+    }
+  }
+  const geo=new THREE.BufferGeometry();
+  geo.setAttribute("position",new THREE.Float32BufferAttribute(pos,3));
+  geo.setAttribute("normal",new THREE.Float32BufferAttribute(nor,3));
+  geo.setAttribute("color",new THREE.Float32BufferAttribute(col,3));
+  geo.setIndex(idx); geo.computeBoundingSphere();
+  return new THREE.Mesh(geo,_voxMat);
+};
+
+function voxLeg(parent,x,hipY,z,w,len,col,dark,phase){
+  const p=new THREE.Group(); p.position.set(x,hipY,z); parent.add(p);
+  const ch=new Chunk();
+  ch.box(-w,-len+0.14,-w, w,0.06,w, col);
+  ch.box(-w-0.02,-len,-w-0.02, w+0.02,-len+0.16,w+0.14, dark);
+  ch.mirrorX();
+  p.add(ch.build()); p.userData.phase=phase; return p;
+}
+function voxTail(parent,x,y,z,len,w0,w1,col){
+  const t=new THREE.Group(); t.position.set(x,y,z); parent.add(t);
+  const ch=new Chunk(); const N=6;
+  for(let i=0;i<N;i++){ const f=i/N, w=(w0+(w1-w0)*f)*0.5, drop=len*f*0.1; ch.box(-w,-w-drop,-len*(i+1)/N, w,w-drop,-len*i/N, col); }
+  ch.mirrorX();
+  t.add(ch.build()); parent.userData.tail=t; return t;
+}
+
+// 1) ティラノサウルス（大きな頭・小さな前足・太い尾／2足）
+function build_trex(){
+  const g=new THREE.Group(); const M=0x5a7a44,D=0x39502c,BE=0xa89c6a,C=WHTE;
+  const B=new Chunk();
+  B.box(-0.3,0.95,-0.35, 0.3,1.62,0.5, M);
+  B.box(-0.27,0.98,-0.28, 0.27,1.32,0.46, BE);
+  B.box(-0.36,1.55,0.48, 0.36,2.18,1.05, M);
+  B.box(-0.3,1.56,1.0, 0.3,1.9,1.52, M);
+  B.box(-0.28,1.5,1.02, 0.28,1.66,1.48, D);
+  B.box(-0.26,1.55,1.44, 0.26,1.64,1.52, C);
+  B.box(-0.38,2.06,0.56, 0.38,2.2,0.86, M);
+  B.box(0.2,1.16,0.5, 0.36,1.46,0.66, M); B.box(0.2,1.16,0.62, 0.36,1.32,0.82, C);  // 前足＋手（右／mirrorで左も）
+  B.eye(-0.2,1.95,1.05,1.35); B.eye(0.2,1.95,1.05,1.35);
+  B.mirrorX(); g.add(B.build());
+  voxTail(g,0,1.22,-0.35,1.7,0.52,0.14,M);
+  g.userData.legs=[ voxLeg(g,-0.22,0.98,0.02,0.16,0.98,M,D,0), voxLeg(g,0.22,0.98,0.02,0.16,0.98,M,D,Math.PI) ];
+  return g;
+}
+// 2) トリケラトプス（フリル板＋3角／4足）
+function build_tri(){
+  const g=new THREE.Group(); const M=0x9a6a42,D=0x6b4828,BE=0xc2a06f,C=0xe6d6b0,BK=0x6e4f28;
+  const B=new Chunk();
+  B.box(-0.34,0.7,-0.9, 0.34,1.2,0.55, M);
+  B.box(-0.3,0.72,-0.5, 0.3,0.96,0.5, BE);
+  B.box(-0.34,0.66,0.55, 0.34,1.14,1.05, M);
+  B.box(-0.2,0.68,1.0, 0.2,0.94,1.32, BK);
+  B.box(-0.52,1.14,0.16, 0.52,1.52,0.58, M);
+  B.box(-0.06,1.08,1.1, 0.06,1.48,1.28, C);
+  B.box(0.16,1.14,0.9, 0.3,1.56,1.06, C);              // 眉角（右／mirror）
+  B.eye(-0.2,0.96,1.05); B.eye(0.2,0.96,1.05);
+  B.mirrorX(); g.add(B.build());
+  voxTail(g,0,0.86,-0.9,0.7,0.4,0.14,M);
+  g.userData.legs=[ voxLeg(g,-0.24,0.62,0.4,0.15,0.62,M,D,0), voxLeg(g,0.24,0.62,0.4,0.15,0.62,M,D,Math.PI),
+                    voxLeg(g,-0.24,0.66,-0.5,0.15,0.66,M,D,Math.PI), voxLeg(g,0.24,0.66,-0.5,0.15,0.66,M,D,0) ];
+  return g;
+}
+// 3) ステゴザウルス（高い背＋板の列＋尾トゲ）
+function build_stego(){
+  const g=new THREE.Group(); const M=0x6a7c52,D=0x47572f,BE=0x9aa47a,P=0xc46a38,C=0xe6d6b0;
+  const B=new Chunk();
+  B.box(-0.3,0.82,-1.0, 0.3,1.34,0.7, M);
+  B.box(-0.26,0.84,-0.6, 0.26,1.06,0.6, BE);
+  B.box(-0.2,0.58,0.65, 0.2,0.9,1.08, M);
+  [-0.6,-0.25,0.1,0.45].forEach((z,i)=>{ const h=(i===1||i===2)?0.42:0.28; B.box(-0.05,1.34,z-0.13, 0.05,1.34+h,z+0.13, P); });
+  B.eye(-0.13,0.78,1.03,0.95); B.eye(0.13,0.78,1.03,0.95);
+  B.mirrorX(); g.add(B.build());
+  const t=voxTail(g,0,1.0,-1.0,0.7,0.4,0.14,M);
+  const tc=new Chunk(); tc.box(0.12,-0.05,-0.6,0.28,0.28,-0.5,C); tc.mirrorX(); t.add(tc.build());
+  g.userData.legs=[ voxLeg(g,-0.24,0.56,0.45,0.15,0.56,M,D,0), voxLeg(g,0.24,0.56,0.45,0.15,0.56,M,D,Math.PI),
+                    voxLeg(g,-0.26,0.78,-0.5,0.16,0.78,M,D,Math.PI), voxLeg(g,0.26,0.78,-0.5,0.16,0.78,M,D,0) ];
+  return g;
+}
+// 4) ブラキオサウルス（高く立ち上がる長い首）
+function build_brachi(){
+  const g=new THREE.Group(); const M=0x6e7768,D=0x4a5244,BE=0x9aa08c;
+  const B=new Chunk();
+  B.box(-0.36,1.0,-0.9, 0.36,1.62,0.5, M);
+  B.box(-0.32,1.02,-0.5, 0.32,1.28,0.45, BE);
+  B.box(-0.17,1.5,0.28, 0.17,2.5,0.66, M);
+  B.box(-0.15,2.4,0.5, 0.15,3.0,0.9, M);
+  B.box(-0.18,2.9,0.85, 0.18,3.28,1.3, M);
+  B.eye(-0.1,3.12,1.28,0.85); B.eye(0.1,3.12,1.28,0.85);
+  B.mirrorX(); g.add(B.build());
+  voxTail(g,0,1.15,-0.9,2.0,0.5,0.14,M);
+  g.userData.legs=[ voxLeg(g,-0.28,0.92,0.5,0.18,0.92,M,D,0), voxLeg(g,0.28,0.92,0.5,0.18,0.92,M,D,Math.PI),
+                    voxLeg(g,-0.28,0.8,-0.7,0.18,0.8,M,D,Math.PI), voxLeg(g,0.28,0.8,-0.7,0.18,0.8,M,D,0) ];
+  return g;
+}
+// 5) プテラノドン（長いくちばし＋クレスト＋板の翼／飛行）
+function build_ptera(){
+  const g=new THREE.Group(); const M=0x84796b,D=0x5f574b,ME=0xa89c88,CR=0xc85a34,C=WHTE; const Y=1.4;
+  const B=new Chunk();
+  B.box(-0.16,Y-0.22,-0.22, 0.16,Y+0.2,0.4, M);
+  B.box(-0.15,Y+0.14,0.35, 0.15,Y+0.46,0.7, M);
+  B.box(-0.08,Y+0.2,0.65, 0.08,Y+0.34,1.24, C);
+  B.box(-0.06,Y+0.34,0.2, 0.06,Y+0.5,0.62, CR);
+  B.eye(-0.11,Y+0.3,0.68,1.0); B.eye(0.11,Y+0.3,0.68,1.0);
+  B.mirrorX(); g.add(B.build());
+  const wings=[];
+  [-1,1].forEach(sgn=>{ const w=new THREE.Group(); w.position.set(sgn*0.15,Y+0.05,0.05); g.add(w);
+    const wc=new Chunk();
+    wc.box(0,-0.04,0.05, sgn*0.55,0.04,0.28, M);
+    wc.box(0,-0.03,-0.2, sgn*1.15,0.03,0.28, ME);
+    w.add(wc.build()); w.userData.sign=sgn; wings.push(w); });
+  g.userData.wings=wings;
+  g.userData.legs=[ voxLeg(g,-0.1,Y-0.18,-0.05,0.07,0.4,M,D,0), voxLeg(g,0.1,Y-0.18,-0.05,0.07,0.4,M,D,Math.PI) ];
+  return g;
+}
+// 6) フクイラプトル（福井の獣脚類・水平の体・背の羽・鎌爪）
+function build_fukuiraptor(){
+  const g=new THREE.Group(); const M=0xb0673a,D=0x6e3f20,BE=0xd8a870,C=WHTE,F=0x6e3f20;
+  const B=new Chunk();
+  B.box(-0.24,1.0,-0.55, 0.24,1.42,0.62, M);            // がっしりした胴
+  B.box(-0.2,1.02,-0.2, 0.2,1.18,0.52, BE);
+  B.box(-0.22,1.32,0.55, 0.22,1.78,1.05, M);            // 頭（やや大）
+  B.box(-0.17,1.32,1.0, 0.17,1.58,1.42, M);             // 口先
+  B.box(-0.15,1.32,1.34, 0.15,1.4,1.42, C);             // 歯
+  [-0.32,-0.05,0.22].forEach(z=>B.box(-0.04,1.42,z-0.06, 0.04,1.64,z+0.06, F)); // 背の羽
+  B.box(0.18,1.06,0.44, 0.32,1.28,0.6, M);              // 腕（右／mirror）
+  B.eye(-0.16,1.6,1.02); B.eye(0.16,1.6,1.02);
+  B.mirrorX(); g.add(B.build());
+  voxTail(g,0,1.06,-0.55,1.6,0.3,0.08,M);
+  const legs=[ voxLeg(g,-0.18,0.98,0.05,0.15,0.98,M,D,0), voxLeg(g,0.18,0.98,0.05,0.15,0.98,M,D,Math.PI) ];
+  legs.forEach(p=>{ const ch=new Chunk(); ch.box(-0.05,-0.94,0.16, 0.05,-0.78,0.32, C); p.add(ch.build()); }); // 鎌爪
+  g.userData.legs=legs; return g;
+}
+// 7) フクイサウルス（福井の鳥脚類・くちばし／2〜4足）
+function build_fukuisaurus(){
+  const g=new THREE.Group(); const M=0x7f8a4e,D=0x556031,BE=0xb6bd82,BK=0x6e6a3a;
+  const B=new Chunk();
+  B.box(-0.3,0.75,-0.85, 0.3,1.24,0.55, M);
+  B.box(-0.26,0.77,-0.45, 0.26,1.0,0.5, BE);
+  B.box(-0.22,1.3,0.6, 0.22,1.7,1.0, M);                // 頭
+  B.box(-0.24,1.32,0.96, 0.24,1.54,1.34, BK);           // くちばし（ダックビル）
+  B.box(-0.16,1.62,0.72, 0.16,1.74,0.98, M);            // 頭頂の小さな盛り上がり
+  B.eye(-0.16,1.5,1.0); B.eye(0.16,1.5,1.0);
+  B.mirrorX(); g.add(B.build());
+  voxTail(g,0,1.0,-0.85,1.4,0.42,0.12,M);
+  g.userData.legs=[ voxLeg(g,-0.2,0.62,0.45,0.14,0.62,M,D,0), voxLeg(g,0.2,0.62,0.45,0.14,0.62,M,D,Math.PI),
+                    voxLeg(g,-0.22,0.78,-0.5,0.16,0.78,M,D,Math.PI), voxLeg(g,0.22,0.78,-0.5,0.16,0.78,M,D,0) ];
+  return g;
+}
+// 8) フクイティタン（福井の竜脚類・前方へ伸びる太い首／4足）
+function build_fukuititan(){
+  const g=new THREE.Group(); const M=0x9a8a63,D=0x6e6244,BE=0xc4b78c;
+  const B=new Chunk();
+  B.box(-0.42,0.95,-1.0, 0.42,1.58,0.6, M);             // 大きな胴
+  B.box(-0.38,0.97,-0.55, 0.38,1.26,0.5, BE);
+  B.box(-0.22,1.35,0.5, 0.22,1.9,1.02, M);              // 首（前上へ）
+  B.box(-0.18,1.72,0.92, 0.18,2.14,1.48, M);
+  B.box(-0.17,2.02,1.4, 0.17,2.34,1.8, M);              // 頭（前方）
+  B.eye(-0.11,2.2,1.76,0.9); B.eye(0.11,2.2,1.76,0.9);
+  B.mirrorX(); g.add(B.build());
+  voxTail(g,0,1.15,-1.0,2.2,0.56,0.14,M);
+  g.userData.legs=[ voxLeg(g,-0.3,0.9,0.48,0.2,0.9,M,D,0), voxLeg(g,0.3,0.9,0.48,0.2,0.9,M,D,Math.PI),
+                    voxLeg(g,-0.3,0.85,-0.65,0.2,0.85,M,D,Math.PI), voxLeg(g,0.3,0.85,-0.65,0.2,0.85,M,D,0) ];
+  return g;
+}
+
+// 相棒の犬（タン＆クリームの柴犬風）
+function build_dog(){
+  const g=new THREE.Group(); const M=0xc98f57,D=0x9a6a3a,C=0xf1e7d2,N=0x241f1a;
+  const B=new Chunk();
+  B.box(-0.22,0.66,-0.5, 0.22,1.08,0.42, M);            // 胴
+  B.box(-0.19,0.66,-0.12, 0.19,0.9,0.42, C);            // 胸〜腹（クリーム）
+  B.box(-0.26,0.98,0.34, 0.26,1.46,0.9, M);             // 頭
+  B.box(-0.19,0.98,0.5, 0.19,1.18,0.9, C);              // ほほ（クリーム）
+  B.box(-0.15,0.96,0.84, 0.15,1.18,1.2, C);             // マズル
+  B.box(-0.12,0.94,1.14, 0.12,1.07,1.24, N);            // 鼻
+  B.box(-0.02,1.05,1.06, 0.02,1.12,1.22, N);            // 鼻筋
+  B.box(-0.16,1.06,1.04, 0.16,1.12,1.14, D);            // 口
+  B.box(-0.3,1.4,0.42, -0.14,1.82,0.6, M);              // 耳L（mirrorで右も）
+  B.box(-0.28,1.42,0.46, -0.16,1.7,0.58, D);            // 耳の内側（影）
+  B.eye(-0.15,1.24,0.9,1.0); B.eye(0.15,1.24,0.9,1.0);
+  B.mirrorX(); g.add(B.build());
+  // 立ち上がってカールした尻尾（左右に振る）
+  const tail=new THREE.Group(); tail.position.set(0,1.0,-0.5); g.add(tail);
+  const tc=new Chunk();
+  tc.box(-0.07,-0.02,-0.06, 0.07,0.24,0.06, M);
+  tc.box(-0.07,0.2,0.0, 0.07,0.44,0.14, M);
+  tc.box(-0.07,0.38,0.08, 0.07,0.54,0.22, C);           // 先端（クリーム）
+  tc.mirrorX(); tail.add(tc.build());
+  g.userData.tail=tail;
+  g.userData.legs=[ voxLeg(g,-0.15,0.66,0.3,0.12,0.66,M,C,0), voxLeg(g,0.15,0.66,0.3,0.12,0.66,M,C,Math.PI),
+                    voxLeg(g,-0.15,0.66,-0.38,0.12,0.66,M,C,Math.PI), voxLeg(g,0.15,0.66,-0.38,0.12,0.66,M,C,0) ];
+  return g;
+}
+// 恐竜のたまご（マイクラのドラゴンエッグ風）
+function build_egg(){
+  const g=new THREE.Group(); const M=0x33305a,S=0x6a5fa0,L=0x9f95d0;
+  const B=new Chunk();
+  B.ellip(0,0.44,0, 0.26,0.4,0.26, M);                  // 卵本体（縦長）
+  B.ellip(0,0.74,0, 0.13,0.16,0.13, M);                 // 上のとがり
+  B.box(-0.06,0.34,0.2, 0.08,0.5,0.3, S);               // 斑点
+  B.box(0.12,0.54,0.02, 0.24,0.68,0.16, S);
+  B.box(-0.24,0.4,-0.04, -0.12,0.54,0.1, S);
+  B.box(-0.05,0.62,0.16, 0.05,0.7,0.24, L);             // 光沢点
+  B.mirrorX(); g.add(B.build());
+  return g;
+}
+
+const DEFAULT_KIND="dog";
+// 相棒の犬のセリフ
+function dogLines(){
+  return { start:"いっしょに さがそうワン！", found:"みつけたワン！🎉", here:"ここ ほってワン！",
+    hintOk:"こっちワン！ ついてきて→", hintNg:"たぶん こっちワン…？", wrong:"…あれ、ちがったワン",
+    done:"ぜんぶ みつけたワン！", again:"おしい！ もう一回ワン？", pet:"うれしいワン！",
+    closer:"もっと 近くに来てワン！", digNow:"ここ 掘れるワン！" };
+}
+// 福井生まれ（フクイ〜）の恐竜は福井弁でしゃべる
+function fukuiLines(cry){
+    return {
+        start :`ほな いっしょに さがそっさ、${cry}！`,
+        found :`みつけたざ！ ${cry}🎉`,
+        here  :`ここ ほってみ、${cry}！`,
+        hintOk:`こっちやって！ ついてきねの→`,
+        hintNg:`たぶん こっちやろ…？ ${cry}`,
+        wrong :`…あれ、ちごたかの ${cry}`,
+        done  :`ぜんぶ みつけたざ！ ${cry}`,
+        again :`おっしいのー！ もういっぺん やろっさ ${cry}？`,
+        pet   :`うれしいざ〜 ${cry}！`,
+        closer:`もちっと 近こう来ねの ${cry}！`,
+        digNow:`ここ 掘れるざ！ ${cry}！`
+    };
+}
+function dinoLines(cry){
+    return {
+        start :`いっしょに さがすぞ、${cry}！`,
+        found :`みつけた！ ${cry}🎉`,
+        here  :`ここを ほるんだ、${cry}！`,
+        hintOk:`こっちだ！ ついてこい→`,
+        hintNg:`たぶん こっち…？ ${cry}`,
+        wrong :`…あれ、ちがったか ${cry}`,
+        done  :`ぜんぶ みつけたぞ！ ${cry}`,
+        again :`おしい！ もう一回 やるか ${cry}？`,
+        pet   :`うれしいぞ ${cry}！`,
+        closer:`もっと 近くに来い ${cry}！`,
+        digNow:`ここ 掘れるぞ ${cry}！`
+    };
+}
+const DINOS=[
+    {key:"trex",        label:"🦖 ティラノサウルス", cry:"ガオー",   build:build_trex},
+    {key:"tri",         label:"🦕 トリケラトプス",   cry:"ブモォ",   build:build_tri},
+    {key:"stego",       label:"🦕 ステゴザウルス",   cry:"のっしり", build:build_stego},
+    {key:"brachi",      label:"🦕 ブラキオサウルス", cry:"にょろん", build:build_brachi},
+    {key:"ptera",       label:"🕊 プテラノドン",     cry:"ピギャー", build:build_ptera},
+    {key:"fukuiraptor", label:"🦖 フクイラプトル",   cry:"ガオォ",   build:build_fukuiraptor},
+    {key:"fukuisaurus", label:"🦕 フクイサウルス",   cry:"モーゥ",   build:build_fukuisaurus},
+    {key:"fukuititan",  label:"🦕 フクイティタン",   cry:"ずしーん", build:build_fukuititan},
+];
+
+const BUDDY_BASE=0.35; let buddyScale=1, bubbleSpr=null;   // 相棒の基準スケール × ユーザー倍率(1.0〜2.5)
+function applyBuddyScale(){ dog.scale.setScalar(BUDDY_BASE*buddyScale);
+    if(bubbleSpr) bubbleSpr.scale.set(4.8/buddyScale, 1.6/buddyScale, 1); }   // キャラが大きくてもセリフの大きさは一定に
+stage.add(dog);
+applyBuddyScale();
 dog.position.set(2,GROUND_Y,2);
 
 /* =====================================================
@@ -635,22 +1113,33 @@ dog.position.set(2,GROUND_Y,2);
  *   相棒が1種類だけのときは切り替えUIは自動的に隠れます。
  * ===================================================== */
 const COMPANIONS={};
-let companionKind="dog";
-function registerCompanion(key, def){
-    COMPANIONS[key]=def;
-    if(def.body){ def.body.visible=(key===companionKind); dog.add(def.body); }
-    refreshBuddyUI();
+let companionKind=DEFAULT_KIND;
+function registerCompanion(key, def){ COMPANIONS[key]=def; refreshBuddyUI(); }
+// 実際のボクセル生成は「その相棒が必要になったとき」に一度だけ行う（起動を軽く保つ）
+function ensureBody(key){
+    const def=COMPANIONS[key]; if(!def) return null;
+    if(!def.body && def.builder){
+        const body=def.builder();
+        body.updateMatrixWorld(true);
+        if(!body.userData.wings){                       // 飛行タイプ以外は足を接地(y=0)にそろえる
+            const bb=new THREE.Box3().setFromObject(body);
+            if(isFinite(bb.min.y)) body.position.y -= bb.min.y;
+        }
+        body.visible=(key===companionKind); dog.add(body); def.body=body;
+    }
+    return def.body;
 }
-function activeBody(){ return (COMPANIONS[companionKind]||COMPANIONS.dog).body; }
+function activeBody(){ return ensureBody(companionKind) || ensureBody(DEFAULT_KIND); }
 function setCompanion(kind){
-    if(!COMPANIONS[kind]) kind="dog";
+    if(!COMPANIONS[kind]) kind=DEFAULT_KIND;
     companionKind=kind;
+    ensureBody(kind);                                   // 選ばれた種を（未生成なら）ここで生成
     for(const k in COMPANIONS){ if(COMPANIONS[k].body) COMPANIONS[k].body.visible=(k===kind); }
     refreshBuddyUI();
 }
 function line(key){
-    const c=COMPANIONS[companionKind]||COMPANIONS.dog;
-    return (c.lines&&c.lines[key]) || COMPANIONS.dog.lines[key];
+    const c=COMPANIONS[companionKind]||COMPANIONS[DEFAULT_KIND];
+    return (c.lines&&c.lines[key]) || COMPANIONS[DEFAULT_KIND].lines[key];
 }
 // 切り替えUI（相棒が2種類以上あるときだけ表示）
 function refreshBuddyUI(){
@@ -670,19 +1159,14 @@ function refreshBuddyUI(){
         });
     }
     const ask=document.getElementById("dAsk");
-    const cur=COMPANIONS[companionKind]||COMPANIONS.dog;
-    if(ask) ask.textContent=(cur.askLabel||"🐶 犬に聞く");
-    if(btn) btn.textContent="相棒："+((cur.label||"").split(" ")[0]||"🐶");
+    const cur=COMPANIONS[companionKind]||COMPANIONS[DEFAULT_KIND];
+    if(ask) ask.textContent=(cur.askLabel||"🦖 きいてみる");
+    if(btn) btn.textContent="相棒："+((cur.label||"").split(" ")[0]||"🦖");
 }
 
-// 既定の相棒：いぬ
-registerCompanion("dog", {
-    label:"🐶 いぬ", askLabel:"🐶 犬に聞く", body:dogBody,
-    lines:{ start:"いっしょに さがすワン！", found:"みつけたワン！🎉", here:"ここ ほって ワン！",
-            hintOk:"こっちワン！ついてきて→", hintNg:"たぶん こっちワン？", wrong:"…あれ、ちがうかも？ワン",
-            done:"ぜんぶ みつけたワン！", again:"おしい！ もう一回するワン？", pet:"うれしいワン！",
-            closer:"もっと 近くに寄るワン！", digNow:"ここ 掘れるワン！" }
-});
+// 相棒＝犬（1種のみ。切り替えUIは自動的に隠れる）
+registerCompanion("dog", { label:"🐶 いぬ", askLabel:"🐶 きいてみる", builder:build_dog, body:null, lines:dogLines() });
+setCompanion("dog");
 
 // 吹き出しスプライト
 const bubble = (function(){
@@ -690,9 +1174,9 @@ const bubble = (function(){
     const cv=document.createElement("canvas"); cv.width=W; cv.height=H;
     const ctx=cv.getContext("2d");
     const tex=new THREE.CanvasTexture(cv);
-    const spr=new THREE.Sprite(new THREE.SpriteMaterial({map:tex, transparent:true, depthTest:false}));
-    spr.scale.set(4.8,1.6,1); spr.position.set(0,2.6,0); spr.visible=false;
-    dog.add(spr);
+    const spr=new THREE.Sprite(new THREE.SpriteMaterial({map:tex, transparent:true, depthTest:true, depthWrite:false}));
+    spr.scale.set(4.8/buddyScale,1.6/buddyScale,1); spr.position.set(0,3.3,-1.0); spr.visible=false;   // 少し上＆奥（相棒の後ろ側）へ
+    dog.add(spr); bubbleSpr=spr;
     function draw(text){
         ctx.clearRect(0,0,W,H);
         ctx.fillStyle="rgba(255,252,244,0.96)";
@@ -703,8 +1187,9 @@ const bubble = (function(){
         ctx.lineTo(r,180); ctx.quadraticCurveTo(8,180,8,180-r);
         ctx.lineTo(8,20+r); ctx.quadraticCurveTo(8,20,r,20); ctx.closePath();
         ctx.fill(); ctx.strokeStyle="#d8b46a"; ctx.lineWidth=4; ctx.stroke();
-        ctx.fillStyle="#3a2d16"; ctx.font="bold 48px sans-serif"; ctx.textAlign="center"; ctx.textBaseline="middle";
-        ctx.fillText(text,cx,100); tex.needsUpdate=true;
+        ctx.fillStyle="#3a2d16"; ctx.font="bold 46px sans-serif"; ctx.textAlign="center"; ctx.textBaseline="middle";
+        const lines=String(text).split("\n"); const lh=54, sy=100-(lines.length-1)*lh/2;
+        lines.forEach((ln,i)=> ctx.fillText(ln, cx, sy+i*lh)); tex.needsUpdate=true;
     }
     let hideT=null, holdText=null;
     return {
@@ -721,16 +1206,20 @@ const bubble = (function(){
  * ===================================================== */
 function buildToolModel(kind){
     const g=new THREE.Group();
-    const handleMat=new THREE.MeshStandardMaterial({color:0x6b4a2b, roughness:0.7});
-    const metalMat =new THREE.MeshStandardMaterial({color:0xb9c2cc, roughness:0.35, metalness:0.6});
-    const handle=new THREE.Mesh(new THREE.CylinderGeometry(0.02,0.022,0.22,10), handleMat);
-    handle.rotation.x=Math.PI/2; handle.position.set(0,0,-0.11); g.add(handle); // 前方へ伸びる柄
-    if(kind==="wide"){ // ブラシ
-        const ferrule=new THREE.Mesh(new THREE.CylinderGeometry(0.028,0.028,0.04,10), metalMat); ferrule.rotation.x=Math.PI/2; ferrule.position.set(0,0,-0.225); g.add(ferrule);
-        const bristles=new THREE.Mesh(new THREE.BoxGeometry(0.08,0.02,0.06), new THREE.MeshStandardMaterial({color:0xe8d9a0, roughness:0.95})); bristles.position.set(0,0,-0.275); g.add(bristles);
-    } else { // ピック
-        const tip=new THREE.Mesh(new THREE.ConeGeometry(0.02,0.16,10), metalMat); tip.rotation.x=-Math.PI/2; tip.position.set(0,0,-0.30); g.add(tip);
-        const cross=new THREE.Mesh(new THREE.CylinderGeometry(0.013,0.013,0.13,8), metalMat); cross.position.set(0,0,-0.225); g.add(cross);
+    const wood=new THREE.MeshStandardMaterial({color:0x8a5a2b, roughness:0.95});   // マイクラの棒
+    const iron=new THREE.MeshStandardMaterial({color:0xd8dde3, roughness:0.85});   // 鉄
+    const dark=new THREE.MeshStandardMaterial({color:0x9aa2ab, roughness:0.9});
+    const stick=new THREE.Mesh(new THREE.BoxGeometry(0.024,0.024,0.24), wood); stick.position.set(0,0,-0.12); g.add(stick);   // 柄
+    if(kind==="wide"){ // シャベル（四角い頭）
+        const head=new THREE.Mesh(new THREE.BoxGeometry(0.08,0.08,0.03), iron); head.position.set(0,0,-0.255); g.add(head);
+        const rim =new THREE.Mesh(new THREE.BoxGeometry(0.096,0.096,0.012), dark); rim.position.set(0,0,-0.272); g.add(rim);
+    } else { // ツルハシ（頭を90度回転）
+        const head=new THREE.Group(); head.position.set(0,0,-0.245);
+        const bar =new THREE.Mesh(new THREE.BoxGeometry(0.17,0.032,0.032), iron); head.add(bar);
+        const tipL=new THREE.Mesh(new THREE.BoxGeometry(0.028,0.028,0.028), dark); tipL.position.set(-0.085,0,0); head.add(tipL);
+        const tipR=new THREE.Mesh(new THREE.BoxGeometry(0.028,0.028,0.028), dark); tipR.position.set(0.085,0,0); head.add(tipR);
+        head.rotation.z=Math.PI/2; g.add(head);   // 90度回転
+        const neck=new THREE.Mesh(new THREE.BoxGeometry(0.032,0.032,0.03), iron); neck.position.set(0,0,-0.222); g.add(neck);
     }
     return g;
 }
@@ -746,64 +1235,179 @@ const dexPanel=(function(){
     const cv=document.createElement("canvas"); cv.width=512; cv.height=640;
     const ctx=cv.getContext("2d");
     const tex=new THREE.CanvasTexture(cv);
-    const mat=new THREE.MeshBasicMaterial({map:tex, transparent:true, side:THREE.DoubleSide, depthTest:false});
+    const mat=new THREE.MeshBasicMaterial({map:tex, transparent:true, side:THREE.DoubleSide, depthTest:true});
     const mesh=new THREE.Mesh(new THREE.PlaneGeometry(0.30,0.375), mat);
-    // 位置は左手の少し上。向きは毎フレーム カメラを向く（updateDexPanelでビルボード）
-    mesh.position.set(0,0.10,-0.06); mesh.renderOrder=999;
+    mesh.position.set(0,0.10,-0.06);
     dexHolder.add(mesh);
     const imgs=ART_IMGS.map(src=>{ const im=new Image(); im.crossOrigin="anonymous"; im.onload=()=>draw(); im.src=src; return im; });
     function roundRect(c,x,y,w,h,r){ c.beginPath(); c.moveTo(x+r,y); c.arcTo(x+w,y,x+w,y+h,r); c.arcTo(x+w,y+h,x,y+h,r); c.arcTo(x,y+h,x,y,r); c.arcTo(x,y,x+w,y,r); c.closePath(); }
+    const cols=2, pad=18, gx=28, gyy=96, cw=(496-gx-28-pad)/cols, chh=(624-96-20-pad*3)/4;
+    function rectOf(i){ const r=(i/cols)|0,c=i%cols; return {x:gx+c*(cw+pad), y:gyy+r*(chh+pad), w:cw, h:chh}; }
+    let hoverIdx=-1;
     function draw(){
         ctx.clearRect(0,0,512,640);
         ctx.fillStyle="rgba(18,12,32,0.94)"; roundRect(ctx,8,8,496,624,26); ctx.fill();
         ctx.strokeStyle="#d8b46a"; ctx.lineWidth=5; ctx.stroke();
         let found=0; for(let i=0;i<8;i++) if(dexData[i]&&dexData[i].found) found++;
-        ctx.fillStyle="#f0d98a"; ctx.font="bold 42px sans-serif"; ctx.textAlign="center"; ctx.textBaseline="middle";
-        ctx.fillText("発掘図鑑  "+found+" / 8", 256, 54);
-        const cols=2, pad=18, gx=28, gy=96, cw=(496-gx-28-pad)/cols, chh=(624-96-20-pad*3)/4;
+        ctx.fillStyle="#f0d98a"; ctx.font="bold 40px sans-serif"; ctx.textAlign="center"; ctx.textBaseline="middle";
+        ctx.fillText((curTarget==="dino"?"🦖 恐竜図鑑  ":"🏺 発掘図鑑  ")+found+" / 8", 256, 52);
         for(let i=0;i<8;i++){
-            const r=(i/cols)|0, c=i%cols, x=gx+c*(cw+pad), y=gy+r*(chh+pad), e=dexData[i];
+            const R=rectOf(i), x=R.x,y=R.y, e=dexData[i];
             if(e&&e.found){
                 ctx.fillStyle="#efe2c4"; roundRect(ctx,x,y,cw,chh,12); ctx.fill();
-                const im=imgs[i];
-                if(im&&im.complete&&im.naturalWidth){ const s=Math.min(cw/im.naturalWidth,(chh-16)/im.naturalHeight), iw=im.naturalWidth*s, ih=im.naturalHeight*s;
-                    try{ ctx.drawImage(im, x+(cw-iw)/2, y+10+(chh-16-ih)/2, iw, ih); }catch(_){}}
+                if(curTarget==="dino"){
+                    ctx.textAlign="center"; ctx.textBaseline="middle";
+                    ctx.fillStyle="rgba(150,120,60,.5)"; ctx.font="bold 40px sans-serif"; ctx.fillText("🦖", x+cw/2, y+chh/2-14);
+                    ctx.fillStyle="#6e5a2e"; ctx.font="bold 22px sans-serif"; ctx.fillText(curName(i), x+cw/2, y+chh/2+22);
+                } else {
+                    const im=imgs[i];
+                    if(im&&im.complete&&im.naturalWidth){ const s=Math.min(cw/im.naturalWidth,(chh-16)/im.naturalHeight), iw=im.naturalWidth*s, ih=im.naturalHeight*s;
+                        try{ ctx.drawImage(im, x+(cw-iw)/2, y+10+(chh-16-ih)/2, iw, ih); }catch(_){}}
+                }
             } else { ctx.fillStyle="rgba(42,32,60,0.92)"; roundRect(ctx,x,y,cw,chh,12); ctx.fill();
-                ctx.fillStyle="rgba(185,165,225,0.55)"; ctx.font="bold 64px sans-serif"; ctx.fillText("？", x+cw/2, y+chh/2); }
+                ctx.fillStyle="rgba(185,165,225,0.55)"; ctx.font="bold 64px sans-serif"; ctx.textAlign="center"; ctx.textBaseline="middle"; ctx.fillText("？", x+cw/2, y+chh/2); }
             ctx.fillStyle=(e&&e.found)?"#7a6532":"rgba(185,165,225,0.75)"; ctx.font="bold 22px sans-serif"; ctx.textAlign="left"; ctx.textBaseline="top";
             ctx.fillText("No."+String(i+1).padStart(2,"0"), x+8, y+7);
-            if(e&&e.found&&(e.date||e.time)){
-                ctx.textAlign="right"; ctx.font="bold 18px sans-serif";
-                ctx.fillText((e.date||"")+(e.time?" "+e.time:""), x+cw-8, y+9);
-            }
+            if(i===hoverIdx && e && e.found){ ctx.strokeStyle="#ffe066"; ctx.lineWidth=6; roundRect(ctx,x-2,y-2,cw+4,chh+4,14); ctx.stroke(); }  // 発掘済みのみ選択ハイライト
             ctx.textAlign="center"; ctx.textBaseline="middle";
         }
         tex.needsUpdate=true;
     }
+    function pick(u,v){ const X=u*512, Y=(1-v)*640; for(let i=0;i<8;i++){ const r=rectOf(i); if(X>=r.x&&X<=r.x+r.w&&Y>=r.y&&Y<=r.y+r.h) return i; } return -1; }
+    function setHover(i){ if(i!==hoverIdx){ hoverIdx=i; draw(); } }
     draw();
-    return { mesh, draw };
+    return { mesh, draw, pick, setHover, get hover(){ return hoverIdx; } };
 })();
-// 左手のひらが顔を向いたら図鑑を表示（Yボタンで固定表示）。向きは常にカメラ向き。
+// タイムアタックのカウントダウン/残り時間を「発掘図鑑の近く（左手）」に表示
+const taClock=(function(){
+    const cv=document.createElement("canvas"); cv.width=384; cv.height=128; const c=cv.getContext("2d");
+    const tex=new THREE.CanvasTexture(cv);
+    const spr=new THREE.Sprite(new THREE.SpriteMaterial({map:tex, transparent:true, depthTest:true}));
+    spr.scale.set(0.21,0.07,1); spr.position.set(0,0.31,-0.02); spr.visible=false;
+    dexHolder.add(spr);
+    let last="";
+    function draw(txt,big){ if(txt===last) return; last=txt; c.clearRect(0,0,384,128);
+        c.fillStyle="rgba(18,12,32,0.9)"; c.beginPath();
+        if(c.roundRect) c.roundRect(6,6,372,116,22); else c.rect(6,6,372,116);
+        c.fill(); c.strokeStyle="#d8b46a"; c.lineWidth=4; c.stroke();
+        const fs = big?86 : (txt.length>6?34:52);
+        c.fillStyle="#ffe066"; c.textAlign="center"; c.textBaseline="middle"; c.font="bold "+fs+"px sans-serif"; c.fillText(txt,192,66); tex.needsUpdate=true; }
+    return { spr, draw, show(v){ spr.visible=v; } };
+})();
+function updateTAClock(){
+    if(!renderer.xr.isPresenting || GAME.mode!=="time"){ taClock.show(false); return; }
+    const s=TA.state;
+    if(s==="countdown"){ const n=Math.max(1,Math.ceil((TA.cdEnd-performance.now())/1000)); taClock.draw(String(n),true); taClock.show(true); }
+    else if(s==="run"){ taClock.draw("⏱ "+Math.max(0,Math.ceil(GAME.timeLeft))+"s",false); taClock.show(true); }
+    else if(s==="ready"){ taClock.draw("▶▶ 2回押しで開始",false); taClock.show(true); }
+    else if(s==="results" || s==="free"){ taClock.draw("▶▶ 2回押しで再挑戦",false); taClock.show(true); }
+    else taClock.show(false);
+}
+// 発掘図鑑は常に表示（左手/コントローラーの角度に関係なく）。向きは常にカメラ向き。
 function updateDexPanel(){
     if(!renderer.xr.isPresenting || !leftCtrl){ dexHolder.visible=false; return; }
-    const up=new THREE.Vector3(0,1,0).applyQuaternion(leftCtrl.getWorldQuaternion(new THREE.Quaternion()));
-    const toHead=new THREE.Vector3().subVectors(camera.getWorldPosition(new THREE.Vector3()), leftCtrl.getWorldPosition(new THREE.Vector3())).normalize();
-    dexHolder.visible = dexPinned || up.dot(toHead) > 0.15;
-    if(dexHolder.visible){ dexPanel.mesh.lookAt(camera.getWorldPosition(new THREE.Vector3())); }
+    dexHolder.visible = true;
+    dexPanel.mesh.lookAt(camera.getWorldPosition(new THREE.Vector3()));
 }
+/* 右手のレイで図鑑カードを指す → 右トリガーで「トレカ＋モデル」をホログラム風に宙へ表示 */
+const _dexRay=new THREE.Raycaster();
+function updateDexHover(){
+    if(!renderer.xr.isPresenting || !dexHolder.visible || !rightCtrl){ dexPanel.setHover(-1); return; }
+    const o=new THREE.Vector3(); rightCtrl.getWorldPosition(o);
+    const d=new THREE.Vector3(0,0,-1).applyQuaternion(rightCtrl.getWorldQuaternion(new THREE.Quaternion())).normalize();
+    _dexRay.set(o,d);
+    const hit=_dexRay.intersectObject(dexPanel.mesh,false)[0];
+    dexPanel.setHover(hit&&hit.uv ? dexPanel.pick(hit.uv.x,hit.uv.y) : -1);
+}
+let holo=null;
+function makeTradingCardTex(idx){
+    const cv=document.createElement("canvas"); cv.width=512; cv.height=717; const c=cv.getContext("2d");
+    const tex=new THREE.CanvasTexture(cv); if("colorSpace" in tex) tex.colorSpace=THREE.SRGBColorSpace;
+    const found=dexData[idx]&&dexData[idx].found;
+    c.fillStyle="#f4e8cc"; c.fillRect(0,0,512,717);
+    c.strokeStyle="#c9b384"; c.lineWidth=10; c.strokeRect(6,6,500,705);
+    c.fillStyle="#7a6532"; c.textAlign="center"; c.textBaseline="middle";
+    c.font="bold 34px sans-serif"; c.fillText("No."+String(idx+1).padStart(2,"0"), 256, 46);
+    c.fillStyle="#efe3c2"; c.fillRect(56,90,400,400); c.strokeStyle="#c9b384"; c.lineWidth=4; c.strokeRect(56,90,400,400);
+    c.fillStyle="#6e5a2e"; c.font="bold 36px sans-serif"; c.fillText(curTarget==="dino"? curName(idx) : "出土品", 256, 560);
+    c.fillStyle="#9a7f4a"; c.font="bold 26px sans-serif";
+    c.fillText(found? ((dexData[idx].date||"")+(dexData[idx].time? " "+dexData[idx].time:"")) : "未発掘", 256, 620);
+    const u=found? curImgs()[idx] : "";
+    if(u){ const im=new Image(); im.crossOrigin="anonymous"; im.onload=()=>{ try{ c.drawImage(im,56,90,400,400); tex.needsUpdate=true; }catch(_){} }; im.src=u; }
+    else { c.fillStyle="rgba(150,120,60,.5)"; c.font="bold 150px sans-serif"; c.fillText(curTarget==="dino"?"🦖":"？", 256, 290); }
+    tex.needsUpdate=true; return tex;
+}
+function closeHologram(){ if(holo&&holo.group&&holo.group.parent) holo.group.parent.remove(holo.group); holo=null; }
+function buildHologram(idx){
+    closeHologram();
+    const g=new THREE.Group();
+    const card=new THREE.Mesh(new THREE.PlaneGeometry(0.63,0.882),
+        new THREE.MeshBasicMaterial({map:makeTradingCardTex(idx), transparent:true, opacity:0.98, side:THREE.DoubleSide, toneMapped:false, depthTest:true, depthWrite:false}));
+    card.position.set(-0.15,0.34,-0.2); g.add(card);   // 右＋上（見やすく・図鑑と重ならない）
+    let dino=null, art=null;
+    if(curTarget==="dino"){ try{ dino=makeDigDino(DINOS[idx]); makeFit(dino, dinoHoloH(idx)); }catch(_){} }
+    else if(artModels[idx]){ art=artModels[idx].clone(); art.position.set(0,0,0); art.rotation.set(0,0,0); art.scale.multiplyScalar(0.7); }  // ワールド配置サイズ×0.7
+    const model = dino || art;
+    if(model){
+        model.visible=true; model.updateMatrixWorld(true);   // 測る前に必ず行列更新
+        const bb=new THREE.Box3().setFromObject(model);
+        model.position.x-=(bb.min.x+bb.max.x)/2; model.position.y-=(bb.min.y+bb.max.y)/2; model.position.z-=(bb.min.z+bb.max.z)/2;  // 中心を原点に
+        // 元の色のまま（材質は複製して共有素材を汚さない）。深度テストで自然に手前へ
+        model.traverse(o=>{ if(o.isMesh && o.material){
+            const wasArr=Array.isArray(o.material);
+            const arr=(wasArr?o.material:[o.material]).map(m=>{ const c=m.clone(); c.depthTest=true; c.depthWrite=true; return c; });
+            o.material=wasArr?arr:arr[0];
+        }});
+        const mg=new THREE.Group(); mg.position.set(0.36,0.0,-0.2); mg.add(model); g.add(mg); g.userData.mg=mg; g.userData.card=card;  // モデルも +20cm奥
+    } else g.userData.card=card;
+    scene.add(g);
+    holo={ group:g, idx, dino, art }; updateHologram(); sfxLocate();
+}
+// 毎フレーム：左手の位置に追従。カードは常にプレイヤーを向く。モデルは左手の角度で回る
+function updateHologram(){
+    if(!holo) return;
+    const g=holo.group, cam=camera.getWorldPosition(new THREE.Vector3());
+    const mg=g.userData.mg, card=g.userData.card;
+    const camDir=camera.getWorldDirection(new THREE.Vector3()); camDir.y=0; if(camDir.lengthSq()<1e-4) camDir.set(0,0,-1); camDir.normalize();
+    const viewYaw=Math.atan2(-camDir.x, -camDir.z);   // gの+x=プレイヤーの右／-z=奥 になるヨー
+    if(renderer.xr.isPresenting && leftCtrl){
+        const base=leftCtrl.getWorldPosition(new THREE.Vector3()); base.y+=0.30;
+        g.position.lerp(base, 0.4);
+        g.rotation.set(0, viewYaw, 0);                                   // プレイヤー基準：カード左・モデル右を固定
+        if(card) card.lookAt(cam);                                      // カードは常にプレイヤーを向く
+        if(mg){ let hq;
+                if(leftCtrl.userData.isHand && leftCtrl.userData.grip){ hq=leftCtrl.userData.grip.getWorldQuaternion(new THREE.Quaternion()).multiply(GRIP_COMP_Q); }
+                else { hq=leftCtrl.getWorldQuaternion(new THREE.Quaternion()); }
+                mg.quaternion.copy(g.quaternion).invert().multiply(hq); }  // モデルは左手の角度で回る（グリップ空間＝手首回転を反映）
+    } else {
+        const dir=new THREE.Vector3(0,0,-1).applyQuaternion(camera.getWorldQuaternion(new THREE.Quaternion())); dir.y=0; if(dir.lengthSq()<1e-4) dir.set(0,0,-1); dir.normalize();
+        const base=cam.clone().addScaledVector(dir,1.1); base.y=cam.y-0.05;
+        g.position.lerp(base,0.25);
+        g.rotation.set(0, viewYaw, 0);                                   // デスクトップも同様にカード左・モデル右
+        if(card) card.lookAt(cam);
+        if(mg) mg.rotation.y+=0.006;
+    }
+    const now=performance.now(), ph=now*0.006;
+    if(holo.dino){ const m=holo.dino.userData.model;
+        if(m){ if(m.userData.legs) m.userData.legs.forEach(p=>{ p.rotation.x=Math.sin(ph+p.userData.phase)*0.3; });
+               if(m.userData.tail) m.userData.tail.rotation.y=Math.sin(now*0.003)*0.28;
+               if(m.userData.wings) m.userData.wings.forEach(w=>{ w.rotation.z=w.userData.sign*(0.22+Math.sin(now*0.004)*0.4); }); }
+    }
+}
+function toggleHologram(idx){ if(idx<0) return; if(holo && holo.idx===idx) closeHologram(); else buildHologram(idx); }
 
 /* =====================================================
  * ゲーム状態
  * ===================================================== */
 const GAME = {
-    active:false, mode:"collect", tool:"wide", desktop:false,
+    active:false, mode:"collect", tool:"wide", desktop:false, digTarget:"artifact",
     collectedCount:0,          // コレクション：発掘済み数（＝難易度ティア）
     targets:[],                // アクティブな埋蔵ターゲット
     recent:[],                 // 直近に出したスポット（同じ場所の再出現を防ぐ）
     doneIdx:new Set(),         // 発掘済みスポット（リセットまで再出現しない）
     timeLeft:TIME_LIMIT, score:0, endT:0,
 };
-let chosenMode="collect", chosenTool="wide";
+let chosenMode="collect", chosenTool="wide", chosenDigTarget="artifact";
 let scanSoundOn=false;   // 既定：コントローラー使用時は探知音を鳴らさない
 
 /* 難易度：ティア0(易)→7(難)。探知半径↓ / 必要掘り回数↑ / 犬の信頼度↓ / 遠く */
@@ -812,7 +1416,7 @@ function difficulty(tier){
     return {
         detectR : THREE.MathUtils.lerp(7.0, 2.4, t),   // 探知が反応する半径
         digNeed : Math.round(THREE.MathUtils.lerp(3, 10, t)),
-        dogRel  : THREE.MathUtils.lerp(0.95, 0.4, t),  // 犬ヒント信頼度
+        dogRel  : THREE.MathUtils.lerp(0.5, 0.2, t),   // 犬ヒント信頼度（基本は低め＝外しがち。撫でると上がる）
         minDist : THREE.MathUtils.lerp(4, 9, t),       // 中心からの最低距離
     };
 }
@@ -830,7 +1434,7 @@ function makeMarker(){
         new THREE.MeshBasicMaterial({color:0xffdd66, transparent:true, opacity:0.85, side:THREE.DoubleSide}));
     ring.rotation.x=-Math.PI/2; ring.position.y=0.03; g.add(ring);
     g.userData.ring=ring; g.visible=false;
-    scene.add(g); return g;
+    stage.add(g); return g;
 }
 
 
@@ -841,7 +1445,9 @@ function pickSpotIdx(){
     const active=GAME.targets.map(t=>t.idx);
     // 発掘済みは再出現させない（全部掘り終わったら一巡してリセット）
     let pool=[...Array(8).keys()].filter(i=>!active.includes(i) && !GAME.doneIdx.has(i));
-    if(!pool.length){ GAME.doneIdx.clear(); GAME.recent.length=0;
+    if(!pool.length){
+        if(GAME.mode==="time") return null;    // タイムアタックは発掘済みを再出現させない
+        GAME.doneIdx.clear(); GAME.recent.length=0;
         pool=[...Array(8).keys()].filter(i=>!active.includes(i)); }
     let banned=GAME.recent.slice(0, MAX_RECENT);
     let avail=pool.filter(i=>!banned.includes(i));
@@ -884,11 +1490,11 @@ function spawnTarget(tier, forcedIdx=null){
     // マイクラ風の「掘れるブロック」＋照準時の枠線
     const block=new THREE.Mesh(new THREE.BoxGeometry(DIG_BLOCK, DIG_BLOCK*0.7, DIG_BLOCK),
         new THREE.MeshStandardMaterial({color:0x6b5236, roughness:1, transparent:true, opacity:0}));
-    block.position.set(pos.x, GROUND_Y+DIG_BLOCK*0.35, pos.z); scene.add(block);
+    block.position.set(pos.x, GROUND_Y+DIG_BLOCK*0.35, pos.z); stage.add(block);
     const outline=new THREE.LineSegments(
         new THREE.EdgesGeometry(new THREE.BoxGeometry(DIG_BLOCK*1.02, DIG_BLOCK*0.72, DIG_BLOCK*1.02)),
-        new THREE.LineBasicMaterial({color:0x101010, transparent:true, opacity:0.85, depthTest:false}));
-    outline.position.copy(block.position); outline.visible=false; outline.renderOrder=997; scene.add(outline);
+        new THREE.LineBasicMaterial({color:0x101010, transparent:true, opacity:0.85, depthTest:true}));
+    outline.position.copy(block.position); outline.visible=false; stage.add(outline);
     const t = { idx, tier, pos, diff:d, marker, block, outline, discovered:false, progress:0,
                 digNeed: Math.max(2, Math.round(d.digNeed * toolMods().digMul)) };
     GAME.targets.push(t);
@@ -896,7 +1502,7 @@ function spawnTarget(tier, forcedIdx=null){
     return t;
 }
 function clearTargets(){
-    GAME.targets.forEach(t=>{ scene.remove(t.marker); if(t.block) scene.remove(t.block); if(t.outline) scene.remove(t.outline); });
+    GAME.targets.forEach(t=>{ stage.remove(t.marker); if(t.block) stage.remove(t.block); if(t.outline) stage.remove(t.outline); });
     GAME.targets.length=0;
     aimedTarget=null;
 }
@@ -905,6 +1511,82 @@ function clearTargets(){
  * 発掘演出（出土品ポップアウト）
  * ===================================================== */
 const popAnims=[];
+// ── 恐竜モードの発掘演出：岩→たまご→孵化→恐竜（鳴き声＋セリフ） ──
+const dinoDigModels=new Array(8).fill(null);
+const eggHatch=[];
+function makeFit(obj, targetH){ const bb=new THREE.Box3().setFromObject(obj); const h=bb.max.y-bb.min.y; const s=(h>0?targetH/h:1); obj.scale.setScalar(s); return s; }
+// 恐竜の表示サイズ階層（下限0.9〜上限2.1の4段階）。種別ごとに階層を割り当て、生成時にそのサイズで作る
+const DINO_TIER_H=[0.9, 1.2, 1.6, 2.1];
+const DINO_TIER={ ptera:0, fukuiraptor:0, tri:1, stego:1, fukuisaurus:1, trex:2, fukuititan:2, brachi:3 };
+function dinoHByKey(key){ const t=DINO_TIER[key]; return DINO_TIER_H[t!==undefined?t:1]; }
+function dinoWorldH(idx){ return dinoHByKey((DINOS[idx]||{}).key); }
+function dinoSizeOf(idx){ return dinoWorldH(idx); }         // パネル/演出用のサイズ指標（＝表示高さ）
+function dinoHoloH(idx){ return dinoWorldH(idx) * 0.24; }   // ホログラムにも同じ比率で反映（最大2.1→約0.5m）
+function dinoEmergeLine(dn){
+    const name=(dn.label||"").replace(/^\S+\s*/,"");
+    if((dn.key||"").indexOf("fukui")===0) return `${name}やざ！ ${dn.cry}！`;   // 福井弁
+    return `${name}だ！ ${dn.cry}！`;
+}
+// 恐竜モデルを「底面＝原点」のコンテナに包む（種別サイズで生成）
+function makeDigDino(dn){
+    const inner=dn.build(); makeFit(inner, dinoHByKey(dn.key)); inner.updateMatrixWorld(true);
+    const bb=new THREE.Box3().setFromObject(inner);
+    if(isFinite(bb.min.y)) inner.position.y = -bb.min.y;    // 底面をコンテナ原点にそろえる
+    const cont=new THREE.Group(); cont.add(inner);
+    cont.userData.model=inner;
+    cont.userData.legs=inner.userData.legs; cont.userData.tail=inner.userData.tail; cont.userData.wings=inner.userData.wings;
+    cont.userData.flying=!!inner.userData.wings;
+    cont.userData.sizeMul=dinoHByKey(dn.key);
+    cont.userData.animPhase=Math.random()*Math.PI*2;        // 足踏みの位相を個体ごとにバラす
+    cont.userData.animSpeed=0.85+Math.random()*0.4;         // 速さも少し変える
+    cont.userData.tailPhase=Math.random()*Math.PI*2;
+    return cont;
+}
+function revealDino(idx, pos, color){
+    const egg=build_egg(); makeFit(egg,0.55); stage.add(egg);
+    egg.position.set(pos.x, GROUND_Y, pos.z);
+    popAnims.push({ obj:egg, x:pos.x, z:pos.z, startY:GROUND_Y, peakY:ARTIFACT_POP_Y-0.15, endY:ARTIFACT_POP_Y-0.25, t:0, dur:0.7 });
+    eggHatch.push({ egg, idx, pos:pos.clone(), color, at:performance.now()+1300, wob:0 });
+}
+function tickHatch(now, dt){
+    for(let i=eggHatch.length-1;i>=0;i--){ const e=eggHatch[i];
+        if(e.egg){ e.wob+=dt; e.egg.rotation.z=Math.sin(e.wob*11)*0.16*Math.min(1,e.wob*1.5); }  // 孵化前に揺れる
+        if(now>=e.at){
+            stage.remove(e.egg); sfxDig();
+            const dn=DINOS[e.idx], mul=dinoSizeOf(e.idx);
+            let m=dinoDigModels[e.idx];
+            if(!m){ m=makeDigDino(dn); stage.add(m); dinoDigModels[e.idx]=m; }
+            m.visible=true; m.position.set(e.pos.x, GROUND_Y, e.pos.z); m.rotation.set(0,Math.random()*Math.PI*2,0);
+            m.userData.baseY=ARTIFACT_POP_Y-0.05; m.userData.settled=false;
+            popAnims.push({ obj:m, x:e.pos.x, z:e.pos.z, startY:GROUND_Y, peakY:ARTIFACT_POP_Y+0.4, endY:ARTIFACT_POP_Y-0.05, t:0, dur:1.0, dino:true });
+            sfxCry(); vibrate(220,0.85);
+            bubble.say(dinoEmergeLine(dn), 3000);
+            digBusyUntil=performance.now()+2000;   // 恐竜登場セリフから2秒後まで
+            showInfoPanel(e.idx, e.pos, e.color, DINO_IMGS[e.idx], (dn.label||"").replace(/^\S+\s*/,""), mul);
+            eggHatch.splice(i,1);
+        }
+    }
+}
+// 出てきた恐竜のアイドル動作（足踏み＝個体ごとにバラす／尻尾ふり／ゆっくり回転）
+function animateDigDinos(now, dt){
+    dinoDigModels.forEach(cont=>{ if(!cont||!cont.visible) return;
+        cont.rotation.y += 0.004;                             // ゆっくり回転
+        const m=cont.userData.model; if(!m) return;
+        const spd=cont.userData.animSpeed||1, off=cont.userData.animPhase||0, ph=now*0.006*spd + off;
+        if(cont.userData.flying){
+            if(m.userData.wings) m.userData.wings.forEach(w=>{ w.rotation.z = w.userData.sign*(0.22+Math.sin(now*0.004*spd+off)*0.4); }); // 羽ばたき
+            if(cont.userData.settled) cont.position.y = cont.userData.baseY + Math.sin(now*0.0016*spd+off)*0.18;   // 上下にゆっくり
+        } else {
+            if(m.userData.legs) m.userData.legs.forEach(p=>{ p.rotation.x = Math.sin(ph + p.userData.phase)*0.32; });  // 足踏み
+            if(cont.userData.settled) cont.position.y = cont.userData.baseY + Math.abs(Math.sin(ph))*0.045;            // 軽く弾む
+        }
+        if(m.userData.tail) m.userData.tail.rotation.y = Math.sin(now*0.003*spd + (cont.userData.tailPhase||0))*0.28;   // 尻尾ふり
+    });
+}
+function clearDinoReveal(){
+    eggHatch.forEach(e=>{ if(e.egg) stage.remove(e.egg); }); eggHatch.length=0;
+    dinoDigModels.forEach(m=>{ if(m) m.visible=false; });
+}
 function excavate(t){
     // 図鑑登録
     const firstTime = !dexData[t.idx]?.found;
@@ -917,25 +1599,29 @@ function excavate(t){
     saveDex(dexData); refreshDexHTML();
     sfxExcavate(); vibrate(400,1.0);
     bubble.say(line("found"), 2600);
+    digBusyUntil=performance.now()+2000;   // 「見つけたワン！」から2秒後まで
     dogCelebrate();
 
-    // モデルをポップアウト
-    const model = artModels[t.idx];
-    if(model){
-        model.visible=true;
-        model.position.set(t.pos.x, GROUND_Y, t.pos.z);
-        model.rotation.set(0,Math.random()*Math.PI*2,0);
-        popAnims.push({ obj:model, x:t.pos.x, z:t.pos.z, startY:GROUND_Y, peakY:ARTIFACT_POP_Y+0.6, endY:ARTIFACT_POP_Y, t:0, dur:1.0 });
+    // 色（パネルと対応づけ）。恐竜は脈動オーラを出さず色だけ使う
+    const auraColor = ART_COLORS[t.idx % ART_COLORS.length];
+    if(GAME.digTarget==="dino"){
+        revealDino(t.idx, t.pos, auraColor);       // 恐竜：オーラなし。岩→卵→孵化→恐竜
+    } else {
+        const aura = addAura(t.idx, t.pos, 1);     // 出土品：脈動オーラあり
+        const model = artModels[t.idx];
+        if(model){
+            model.visible=true;
+            model.position.set(t.pos.x, GROUND_Y, t.pos.z);
+            model.rotation.set(0,Math.random()*Math.PI*2,0);
+            popAnims.push({ obj:model, x:t.pos.x, z:t.pos.z, startY:GROUND_Y, peakY:ARTIFACT_POP_Y+0.6, endY:ARTIFACT_POP_Y, t:0, dur:1.0 });
+        }
+        showInfoPanel(t.idx, t.pos, aura.color, ART_IMGS[t.idx]);
     }
-    // オーラを出し続ける（出土品ごとに色を変えてパネルと対応づけ）
-    const aura = addAura(t.idx, t.pos);
-    // 情報パネルをその場に立てる（同じ色の帯＋番号＋つなぐ線で関連づけ）
-    showInfoPanel(t.idx, t.pos, aura.color);
 
     // ターゲット除去
-    scene.remove(t.marker);
-    if(t.block) scene.remove(t.block);
-    if(t.outline) scene.remove(t.outline);
+    stage.remove(t.marker);
+    if(t.block) stage.remove(t.block);
+    if(t.outline) stage.remove(t.outline);
     if(aimedTarget===t) aimedTarget=null;
     GAME.doneIdx.add(t.idx);        // このスポットはリセットまで再出現しない
     GAME.targets = GAME.targets.filter(x=>x!==t);
@@ -953,10 +1639,10 @@ function excavate(t){
             setTimeout(()=> spawnTarget(GAME.collectedCount), 900);
         }
     } else { // タイムアタック
-        GAME.score += 100 + t.tier*40;
+        GAME.digScore = (GAME.digScore||0) + 100 + t.tier*40;   // 発掘ポイント（時間ボーナス/減点は終了時に加除）
         updateGoal();
-        // 計測中のみ次を出す（常に3体キープ）
-        if(TA.state==="run") setTimeout(()=>{ if(TA.state==="run") spawnTarget(Math.min(7, (Math.random()*8|0))); }, 600);
+        if(dexFoundCount()>=8){ taFinish(); }   // 全8種を掘り切ったら終了＝残り時間でスコア
+        else if(TA.state==="run") setTimeout(()=>{ if(TA.state==="run") spawnTarget(Math.min(7, (Math.random()*8|0))); }, 600);
     }
     return firstTime;
 }
@@ -980,55 +1666,78 @@ const auraTex = (function(){
     return new THREE.CanvasTexture(cv);
 })();
 const auras=[];
-function addAura(idx, pos){
+function addAura(idx, pos, sizeMul){
+    sizeMul = sizeMul||1;
     const color=ART_COLORS[idx % ART_COLORS.length];
     const g=new THREE.Group();
     // ふんわり光る球状のオーラ（中心は抜けているので出土品がはっきり見える）
     const glow=new THREE.Sprite(new THREE.SpriteMaterial({map:auraTex, color, transparent:true,
         opacity:0.7, blending:THREE.AdditiveBlending, depthWrite:false, depthTest:true}));
-    glow.scale.set(1.7,1.7,1); glow.position.y=ARTIFACT_POP_Y;
+    glow.scale.set(1.7*sizeMul,1.7*sizeMul,1); glow.position.y=ARTIFACT_POP_Y + (sizeMul-1)*0.5;
     glow.renderOrder=-1;                       // 出土品より先に描く＝手前で白飛びさせない
     g.add(glow);
     // 足元の光の輪
-    const ring=new THREE.Mesh(new THREE.RingGeometry(0.35,0.5,32),
+    const ring=new THREE.Mesh(new THREE.RingGeometry(0.35*sizeMul,0.5*sizeMul,32),
         new THREE.MeshBasicMaterial({color, transparent:true, opacity:0.55, side:THREE.DoubleSide, depthWrite:false}));
     ring.rotation.x=-Math.PI/2; ring.position.y=0.03; g.add(ring);
     g.position.set(pos.x, GROUND_Y, pos.z);
-    scene.add(g);
+    stage.add(g);
     const a={ group:g, glow, ring, color, idx, phase:Math.random()*Math.PI*2 };
     auras.push(a); return a;
 }
-function clearAuras(){ auras.forEach(a=>scene.remove(a.group)); auras.length=0; }
+function clearAuras(){ auras.forEach(a=>stage.remove(a.group)); auras.length=0; }
 
 // 情報パネル（発掘済みの解説画像を現地に表示）
 // 画像はカード形式（縦長）。実際の縦横比で作り、出土品のすぐ上に置く。
 const infoPanels=[];
 const PANEL_BASE_H = 1.725;     // パネルの高さ（m）※幅は画像の比率から決まる（1.15の1.5倍）
-function showInfoPanel(idx, pos, color){
-    texLoader.load(ART_IMGS[idx], tex=>{
-        tex.colorSpace=THREE.SRGBColorSpace;
-        const img=tex.image;
-        const ratio=(img&&img.width&&img.height)? img.width/img.height : 0.75;  // 幅/高さ（カード形式）
+function placeholderTex(title){
+    const cv=document.createElement("canvas"); cv.width=512; cv.height=683; const c=cv.getContext("2d");
+    c.fillStyle="#f4e8cc"; c.fillRect(0,0,512,683);
+    c.fillStyle="#c9b384"; c.fillRect(0,0,512,14); c.fillRect(0,669,512,14);
+    c.fillStyle="#efe3c2"; c.fillRect(40,120,432,300);
+    c.strokeStyle="#c9b384"; c.lineWidth=3; c.strokeRect(40,120,432,300);
+    c.fillStyle="rgba(150,120,60,.5)"; c.font="bold 120px sans-serif"; c.textAlign="center"; c.textBaseline="middle"; c.fillText("🦖",256,270);
+    c.fillStyle="#6e5a2e"; c.font="bold 40px sans-serif"; c.fillText(title||"", 256, 500);
+    c.fillStyle="#9a7f4a"; c.font="bold 26px sans-serif"; c.fillText("説明パネル（準備中）", 256, 560);
+    const tex=new THREE.CanvasTexture(cv); if("colorSpace" in tex) tex.colorSpace=THREE.SRGBColorSpace; tex.needsUpdate=true; return tex;
+}
+function showInfoPanel(idx, pos, color, imgUrl, title, sizeMul){
+    imgUrl = (imgUrl===undefined) ? ART_IMGS[idx] : imgUrl;
+    sizeMul = sizeMul||1;
+    // プレイヤーから見て「奥（後方）」へずらす：恐竜が手前になり、パネルが読みやすい
+    const back = new THREE.Vector3(pos.x-player.position.x, 0, pos.z-player.position.z);
+    if(back.lengthSq()<1e-4) back.set(0,0,-1);
+    back.normalize();
+    const backDist = 0.7 + sizeMul*0.7;                 // 大きい恐竜ほど後ろへ
+    const px = pos.x + back.x*backDist, pz = pos.z + back.z*backDist;
+    const build=(tex, ratio)=>{
         const h=PANEL_BASE_H, w=h*ratio;
         const grp=new THREE.Group();
         const mat=new THREE.MeshBasicMaterial({map:tex, transparent:true, side:THREE.DoubleSide, toneMapped:false});
         grp.add(new THREE.Mesh(new THREE.PlaneGeometry(w, h), mat));
-        // 出土品と同じ色の枠＋「No.xx」ラベル（どの出土品の説明かを示す）
         const frame=new THREE.LineSegments(new THREE.EdgesGeometry(new THREE.PlaneGeometry(w*1.04, h*1.04)),
             new THREE.LineBasicMaterial({color}));
         grp.add(frame);
         grp.add(makeLabelSprite("No."+String(idx+1).padStart(2,"0"), color, w*0.5, h*0.5+0.12));
-        grp.position.set(pos.x, 0, pos.z);
+        grp.position.set(px, 0, pz);
         grp.userData.face=true; grp.userData.idx=idx;
-        grp.userData.width=w; grp.userData.height=h; grp.userData.spot=pos.clone();
-        scene.add(grp); infoPanels.push(grp);
-        // 出土品とパネルを結ぶ線（同色）
+        grp.userData.width=w; grp.userData.height=h; grp.userData.spot=pos.clone(); grp.userData.sizeMul=sizeMul;
+        stage.add(grp); infoPanels.push(grp);
         const lineMat=new THREE.LineBasicMaterial({color, transparent:true, opacity:0.5});
         const lineGeo=new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(), new THREE.Vector3()]);
-        const link=new THREE.Line(lineGeo, lineMat); scene.add(link);
+        const link=new THREE.Line(lineGeo, lineMat); stage.add(link);
         grp.userData.link=link;
         updatePanelScale();
-    });
+    };
+    if(imgUrl){
+        texLoader.load(imgUrl,
+            tex=>{ tex.colorSpace=THREE.SRGBColorSpace; const img=tex.image; const ratio=(img&&img.width&&img.height)? img.width/img.height : 0.75; build(tex, ratio); },
+            undefined,
+            ()=>{ build(placeholderTex(title||("No."+(idx+1))), 0.75); });   // 読み込み失敗時もプレースホルダー
+    } else {
+        build(placeholderTex(title||("No."+(idx+1))), 0.75);                 // 画像未設定（恐竜パネル準備中）
+    }
 }
 // パネル上の小さなラベル
 function makeLabelSprite(text, color, width, y){
@@ -1040,7 +1749,7 @@ function makeLabelSprite(text, color, width, y){
     c.strokeStyle="#"+color.toString(16).padStart(6,"0"); c.lineWidth=5; c.stroke();
     c.fillStyle="#"+color.toString(16).padStart(6,"0"); c.font="bold 54px sans-serif";
     c.textAlign="center"; c.textBaseline="middle"; c.fillText(text,128,50);
-    const spr=new THREE.Sprite(new THREE.SpriteMaterial({map:new THREE.CanvasTexture(cv), transparent:true, depthTest:false}));
+    const spr=new THREE.Sprite(new THREE.SpriteMaterial({map:new THREE.CanvasTexture(cv), transparent:true, depthTest:true, depthWrite:false}));
     spr.scale.set(width, width*96/256, 1); spr.position.set(0, y, 0.02);
     return spr;
 }
@@ -1051,7 +1760,7 @@ function updatePanelScale(){
     infoPanels.forEach(p=>{
         p.scale.setScalar(s);
         const h=(p.userData.height||PANEL_BASE_H)*s;
-        p.position.y = ARTIFACT_POP_Y + 0.7 + h*0.5;   // 出土品のやや上に浮かせる
+        p.position.y = ARTIFACT_POP_Y + 0.7 + h*0.5 + (((p.userData.sizeMul||1)-1)*0.4);   // 後方配置＋大きい恐竜だけ少し上げる
     });
 }
 
@@ -1071,7 +1780,10 @@ function askDog(){
     }
     const t = GAME.targets.find(x=>!x.discovered) || GAME.targets[0];
     if(!t){ sfxBark(); bubble.say(dexFoundCount()>=8 ? line("done") : line("again"), 1800); return; }
-    const reliable = Math.random() < t.diff.dogRel;
+    if(digBusy){ sfxBark(); bubble.say(line("here"), 1600); return; }   // 発掘中は新しいヒントを出さない
+    const hitProb = Math.min(1, t.diff.dogRel + petBoost);   // 撫でるほど当たりやすい
+    const reliable = Math.random() < hitProb;
+    if(GAME.mode==="time"){ GAME.askCount=(GAME.askCount||0)+1; }   // 相棒に聞いた回数（減点用）
     let pos;
     if(reliable){ pos = t.pos.clone(); }
     else { // はずれ：フィールド内の別地点
@@ -1084,7 +1796,7 @@ function askDog(){
     dog.userData.hintWaitUntil = 0;   // 到着後に設定
     dog.userData.hintStart = performance.now();   // 動き出しを緩やかにするための起点
     sfxBark();
-    bubble.say(reliable ? line("hintOk") : line("hintNg"), 2200);
+    bubble.say(line("hintOk"), 2200);   // 当たり/外れに関わらず同じ（着いた時に判明）
 }
 function dogCelebrate(){ dogCelebrateT=2.4; }   // ゆっくり数回ジャンプして喜ぶ
 
@@ -1109,6 +1821,23 @@ function vibrateHand(handedness, dur, intensity){
  * 図鑑（HTML）描画
  * ===================================================== */
 const dexGrid=document.getElementById("dexGrid");
+// トレカをタップ → 前面に大きく表示（読みやすく）
+const dexView=document.getElementById("dexView"), dexViewCard=document.getElementById("dexViewCard");
+function openDexView(i){
+    const e=dexData[i], found=e&&e.found; const u=curImgs()[i];
+    dexViewCard.className="dexview-card"+(found?"":" locked");
+    const art = found ? (u ? '<div class="art"><img src="'+u+'" alt="No.'+(i+1)+'"></div>'
+                           : '<div class="art"><span class="q">'+(curTarget==="dino"?"🦖":"？")+'</span></div>')
+                      : '<div class="art"><span class="q">？</span></div>';
+    const meta = found ? '<div class="meta">'+(curTarget==="dino"? '<b>'+curName(i)+'</b><br>' : '')+'発掘済み<br>'+((e.date||"")+(e.time? " "+e.time : ""))+'</div>'
+                       : '<div class="meta">未発掘</div>';
+    dexViewCard.innerHTML='<div class="no">No.'+String(i+1).padStart(2,"0")+'</div>'+art+meta;
+    dexView.classList.add("open");
+}
+function closeDexView(){ dexView.classList.remove("open"); }
+dexGrid.addEventListener("click", ev=>{ const c=ev.target.closest(".dexcard"); if(c && c.dataset.idx!=null) openDexView(+c.dataset.idx); });
+dexView.addEventListener("click", ev=>{ if(ev.target===dexView) closeDexView(); });
+document.getElementById("dexViewClose").addEventListener("click", closeDexView);
 function refreshDexHTML(){
     dexGrid.innerHTML="";
     let found=0;
@@ -1116,15 +1845,18 @@ function refreshDexHTML(){
         const e=dexData[i];
         const card=document.createElement("div");
         card.className="dexcard"+(e?.found?"":" locked");
+        card.dataset.idx=i;
         const no=document.createElement("span"); no.className="no"; no.textContent="No."+String(i+1).padStart(2,"0"); card.appendChild(no);
         // 1:1の画像枠
         const art=document.createElement("div"); art.className="art";
         const stamp=document.createElement("span"); stamp.className="stamp";
         if(e?.found){
             found++;
-            const img=document.createElement("img"); img.src=ART_IMGS[i]; img.alt="出土品"+(i+1); art.appendChild(img);
+            const u=curImgs()[i];
+            if(u){ const img=document.createElement("img"); img.src=u; img.alt="No."+(i+1); art.appendChild(img); }
+            else { const q=document.createElement("span"); q.className="q"; q.textContent=(curTarget==="dino"?"🦖":"？"); art.appendChild(q); }
             if(e.isNew){ const st=document.createElement("span"); st.className="newstamp"; st.textContent="NEW!"; card.appendChild(st); }
-            stamp.innerHTML = (e.date||"") + (e.time? '<br><span class="t">'+e.time+'</span>' : "");
+            stamp.innerHTML = (curTarget==="dino") ? ('<b>'+curName(i)+'</b>') : "";   // 一覧は日時なし（トレカには残す）
         } else {
             const q=document.createElement("span"); q.className="q"; q.textContent="？"; art.appendChild(q);
             stamp.textContent="未発掘";
@@ -1146,6 +1878,13 @@ const menu=document.getElementById("menu");
 document.querySelectorAll("#segMode button").forEach(b=>b.onclick=()=>{ document.querySelectorAll("#segMode button").forEach(x=>x.classList.remove("on")); b.classList.add("on"); chosenMode=b.dataset.v; });
 document.querySelectorAll("#segTool button").forEach(b=>b.onclick=()=>{ document.querySelectorAll("#segTool button").forEach(x=>x.classList.remove("on")); b.classList.add("on"); chosenTool=b.dataset.v; });
 document.querySelectorAll("#segSound button").forEach(b=>b.onclick=()=>{ document.querySelectorAll("#segSound button").forEach(x=>x.classList.remove("on")); b.classList.add("on"); scanSoundOn=(b.dataset.v==="on"); });
+document.querySelectorAll("#segDig button").forEach(b=>b.onclick=()=>{ document.querySelectorAll("#segDig button").forEach(x=>x.classList.remove("on")); b.classList.add("on"); setDigTarget(b.dataset.v); });
+// サイトモデル 表示/非表示（メニュー＋HUD）
+function updateSiteBtn(){ const b=document.getElementById("dSite"); if(b) b.textContent="🗺 サイト："+(siteVisible?"表示":"非表示"); }
+function syncSiteSeg(){ document.querySelectorAll("#segSite button").forEach(x=>x.classList.toggle("on", (x.dataset.v==="show")===siteVisible)); }
+document.querySelectorAll("#segSite button").forEach(b=>b.onclick=()=>{ setSiteVisible(b.dataset.v==="show"); syncSiteSeg(); updateSiteBtn(); });
+{ const b=document.getElementById("dSite"); if(b) b.onclick=()=>{ setSiteVisible(!siteVisible); syncSiteSeg(); updateSiteBtn(); }; }
+updateSiteBtn();
 document.getElementById("openDex").onclick=()=>{ refreshDexHTML(); document.getElementById("dex").classList.add("open"); };
 document.getElementById("dexClose").onclick=()=>{ document.getElementById("dex").classList.remove("open"); clearNewStamps(); refreshDexHTML(); };
 document.getElementById("dexBtn").onclick=()=>{ refreshDexHTML(); document.getElementById("dex").classList.add("open"); };
@@ -1156,7 +1895,9 @@ document.getElementById("dexReset").onclick=()=>{
     if(typeof dexPanel!=="undefined") dexPanel.draw();
     // ワールド上の発掘物・演出を消す
     artModels.forEach(m=>{ if(m) m.visible=false; });
-    infoPanels.forEach(p=>{ if(p.userData.link) scene.remove(p.userData.link); scene.remove(p); }); infoPanels.length=0;
+    clearDinoReveal();
+    closeHologram();
+    infoPanels.forEach(p=>{ if(p.userData.link) stage.remove(p.userData.link); stage.remove(p); }); infoPanels.length=0;
     clearAuras();
     popAnims.length=0;
     // プレイ中なら現在のモードを最初から
@@ -1175,13 +1916,18 @@ document.getElementById("help").addEventListener("click", e=>{ if(e.target.id===
 
 function startGame(desktop){
     GAME.active=true; GAME.desktop=desktop; GAME.mode=chosenMode; GAME.tool=chosenTool;
+    setDigTarget(chosenDigTarget);   // 発掘対象を確定（図鑑もこの対象に切替）
+    clearDinoReveal();
+    closeHologram();
     GAME.collectedCount=0; GAME.score=0; GAME.timeLeft=TIME_LIMIT; GAME.endT=performance.now()+TIME_LIMIT*1000;
     GAME.recent.length=0; GAME.doneIdx.clear();
     coachTimer=2; wasDigReady=false;
     clearTargets();
     // 出土品モデルを一旦隠す
     artModels.forEach(m=>{ if(m) m.visible=false; });
-    infoPanels.forEach(p=>{ if(p.userData.link) scene.remove(p.userData.link); scene.remove(p); }); infoPanels.length=0;
+    clearDinoReveal();
+    closeHologram();
+    infoPanels.forEach(p=>{ if(p.userData.link) stage.remove(p.userData.link); stage.remove(p); }); infoPanels.length=0;
     clearAuras();
     // 初期ターゲット（サイト読込・発掘スポット確定後に配置）
     if(GAME.mode==="collect"){
@@ -1191,7 +1937,8 @@ function startGame(desktop){
         // タイムアタックは「開始待ち」。右トリガー（PC/スマホはボタン）でカウントダウン。
         TA.state="ready";
         GAME.timeLeft=TIME_LIMIT;
-        worldHud.drawCountdown("⏱", desktop ? (IS_TOUCH?"「スタート」ボタンで開始":"スペース / スタートで開始") : "右トリガーでスタート");
+        if(desktop){ worldHud.drawCountdown("⏱", IS_TOUCH?"「スタート」ボタンで開始":"スペース / スタートで開始"); }
+        else { worldHud.hide(); }   // VR/ARは発掘図鑑の近くのサインで案内（パネルは出さない）
     }
     document.body.classList.add("playing");
     if(desktop) document.body.classList.add("desktop");
@@ -1204,8 +1951,21 @@ function startGame(desktop){
 document.getElementById("startDesktop").onclick=()=> startGame(true);
 
 // VR開始/終了
-renderer.xr.addEventListener("sessionstart", ()=>{ unlockAudio(); updatePanelScale(); if(!GAME.active) startGame(false); });
-renderer.xr.addEventListener("sessionend", ()=>{ updatePanelScale(); endGame(true); });
+let _savedBg=null, _savedFog=null;
+renderer.xr.addEventListener("sessionstart", ()=>{ unlockAudio();
+    const session=renderer.xr.getSession();
+    inAR = !!(session && session.environmentBlendMode && session.environmentBlendMode!=="opaque");   // 実世界パススルー＝AR
+    if(inAR){ _savedBg=scene.background; _savedFog=scene.fog; scene.background=null; scene.fog=null; renderer.setClearColor(0x000000,0); }
+    worldYAdjust=WORLD_BASE_Y; stage.position.y=WORLD_BASE_Y;   // VR/ARは低い基準から開始（±2.0mで調整）
+    DOG_FWD=0.6;                                                // 相棒はさらに近め（最短+10cm）から開始
+    updateSiteVis(); updatePanelScale();
+    if(!GAME.active) startGame(false);
+});
+renderer.xr.addEventListener("sessionend", ()=>{
+    if(inAR){ scene.background=_savedBg; scene.fog=_savedFog; renderer.setClearColor(0x000000,1); }
+    inAR=false; worldYAdjust=0; stage.position.y=0;             // デスクトップは通常の高さへ
+    updateSiteVis(); updatePanelScale(); endGame(true);
+});
 
 function endGame(toMenu){
     if(GAME.mode==="time" && GAME.active && TA.state==="run" && GAME.score>0){ recordTimeAttack(GAME.score); }
@@ -1216,9 +1976,11 @@ function endGame(toMenu){
     if(document.pointerLockElement) document.exitPointerLock();
 }
 function recordTimeAttack(score){
-    const arr=loadTA(); const now=new Date();
-    arr.push({score, date:`${now.getMonth()+1}/${now.getDate()}`, id:Date.now()});
-    arr.sort((a,b)=>b.score-a.score); saveTA(arr.slice(0,5));
+    const arr=loadTA(); const now=new Date(); const p=n=>String(n).padStart(2,"0");
+    arr.push({score,
+        date:`${now.getFullYear()}/${p(now.getMonth()+1)}/${p(now.getDate())}`,
+        time:`${p(now.getHours())}:${p(now.getMinutes())}`, id:Date.now()});
+    arr.sort((a,b)=> (b.score-a.score) || ((b.id||0)-(a.id||0)) ); saveTA(arr.slice(0,5));
 }
 
 /* =====================================================
@@ -1234,16 +1996,16 @@ const COUNTDOWN_MS=3000;
 
 // ワールド内の大型表示（カメラの正面に追従。移動しながらでも読める）
 const worldHud=(function(){
-    const cv=document.createElement("canvas"); cv.width=768; cv.height=768;
+    const cv=document.createElement("canvas"); cv.width=768; cv.height=864;
     const ctx=cv.getContext("2d");
     const tex=new THREE.CanvasTexture(cv);
-    const mat=new THREE.MeshBasicMaterial({map:tex, transparent:true, depthTest:false, toneMapped:false});
-    const mesh=new THREE.Mesh(new THREE.PlaneGeometry(1.3,1.3), mat);
-    mesh.renderOrder=998; mesh.visible=false; scene.add(mesh);
+    const mat=new THREE.MeshBasicMaterial({map:tex, transparent:true, depthTest:true, toneMapped:false});
+    const mesh=new THREE.Mesh(new THREE.PlaneGeometry(1.3,1.46), mat);
+    mesh.visible=false; scene.add(mesh);   // 高さ調整(stage)とは切り離し、常に目線基準
     function rr(x,y,w,h,r){ ctx.beginPath(); ctx.moveTo(x+r,y); ctx.arcTo(x+w,y,x+w,y+h,r); ctx.arcTo(x+w,y+h,x,y+h,r);
         ctx.arcTo(x,y+h,x,y,r); ctx.arcTo(x,y,x+w,y,r); ctx.closePath(); }
     function bg(){ ctx.clearRect(0,0,768,768);
-        ctx.fillStyle="rgba(10,7,26,0.90)"; rr(24,24,720,720,40); ctx.fill();
+        ctx.fillStyle="rgba(10,7,26,0.90)"; rr(24,24,720,816,40); ctx.fill();
         ctx.strokeStyle="#d8b46a"; ctx.lineWidth=6; ctx.stroke(); }
     return {
         mesh,
@@ -1251,27 +2013,41 @@ const worldHud=(function(){
         drawCountdown(text, sub){
             bg();
             ctx.textAlign="center"; ctx.textBaseline="middle";
-            ctx.fillStyle="#f0d98a"; ctx.font="bold 300px sans-serif"; ctx.fillText(text,384,360);
-            if(sub){ ctx.fillStyle="rgba(226,216,255,.85)"; ctx.font="bold 44px sans-serif"; ctx.fillText(sub,384,610); }
+            ctx.fillStyle="#f0d98a"; ctx.font="bold 300px sans-serif"; ctx.fillText(text,384,410);
+            if(sub){ ctx.fillStyle="rgba(226,216,255,.85)"; ctx.font="bold 44px sans-serif"; ctx.fillText(sub,384,670); }
             tex.needsUpdate=true; mesh.visible=true;
         },
-        drawResults(score, found, list){
+        drawResults(score, found, list, calc){
             bg();
             ctx.textAlign="center"; ctx.textBaseline="middle";
-            ctx.fillStyle="#f0d98a"; ctx.font="bold 56px sans-serif"; ctx.fillText("⏱ タイムアップ！",384,96);
-            ctx.fillStyle="#ffffff"; ctx.font="bold 104px sans-serif"; ctx.fillText(score+" pt",384,196);
-            ctx.fillStyle="rgba(226,216,255,.8)"; ctx.font="bold 36px sans-serif"; ctx.fillText("発掘 "+found+" / 8",384,264);
-            ctx.fillStyle="#e6c26a"; ctx.font="bold 40px sans-serif"; ctx.fillText("― TOP 5 ―",384,340);
-            ctx.font="bold 42px sans-serif";
-            for(let i=0;i<5;i++){
-                const e=list[i], y=410+i*62, hit=e&&e.score===score;
-                ctx.textAlign="left";  ctx.fillStyle=hit?"#ffd34d":"rgba(226,216,255,.85)";
-                ctx.fillText((i+1)+".", 150, y);
-                ctx.textAlign="right";
-                ctx.fillText(e? (e.score+"pt  "+e.date) : "----", 620, y);
+            ctx.fillStyle="#f0d98a"; ctx.font="bold 50px sans-serif"; ctx.fillText(found>=8?"🏆 コンプリート！":"⏱ タイムアップ！",384,74);
+            ctx.fillStyle="#ffffff"; ctx.font="bold 88px sans-serif"; ctx.fillText(score+" pt",384,158);
+            if(calc){
+                // 計算過程（余白を広めに、左ラベル・右数値で読みやすく）
+                const lx=150, rx=620; let y=232; const rowH=48;
+                ctx.font="bold 30px sans-serif";
+                const row=(label,val,col)=>{ ctx.fillStyle=col||"rgba(226,216,255,.9)";
+                    ctx.textAlign="left";  ctx.fillText(label, lx, y);
+                    ctx.textAlign="right"; ctx.fillText(val, rx, y); y+=rowH; };
+                row("発掘ポイント", "+"+calc.digPts);
+                row("時間ボーナス（残り"+calc.secs+"秒×30）", "+"+calc.timeBonus);
+                row("相棒に聞いた（"+calc.asks+"回×−10）", "−"+calc.askPenalty, "rgba(255,190,190,.9)");
+                // 区切り線＋合計
+                ctx.strokeStyle="rgba(216,180,106,.5)"; ctx.lineWidth=3; ctx.beginPath(); ctx.moveTo(lx,y-14); ctx.lineTo(rx,y-14); ctx.stroke();
+                ctx.fillStyle="#ffe066"; ctx.font="bold 34px sans-serif";
+                ctx.textAlign="left"; ctx.fillText("合計", lx, y+8);
+                ctx.textAlign="right"; ctx.fillText(score+" pt", rx, y+8);
             }
-            ctx.textAlign="center"; ctx.fillStyle="rgba(200,190,240,.75)"; ctx.font="bold 30px sans-serif";
-            ctx.fillText(GAME.desktop?"スペース / ボタンで閉じる（歩き回れます）":"右トリガーで閉じる（歩き回れます）",384,712);
+            ctx.textAlign="center"; ctx.fillStyle="#e6c26a"; ctx.font="bold 34px sans-serif"; ctx.fillText("― TOP 5 ―",384,470);
+            for(let i=0;i<5;i++){
+                const e=list[i], yy=516+i*44, hit=e&&e.score===score;
+                ctx.fillStyle=hit?"#ffd34d":"rgba(226,216,255,.85)";
+                ctx.textAlign="left";   ctx.font="bold 30px sans-serif"; ctx.fillText((i+1)+".", 90, yy);
+                ctx.textAlign="center"; ctx.font="bold 34px sans-serif"; ctx.fillText(e? (e.score+" pt") : "----", 384, yy);
+                ctx.textAlign="right";  ctx.font="bold 24px sans-serif"; ctx.fillText(e? ((e.date||"")+(e.time? " "+e.time:"")) : "", 680, yy);
+            }
+            ctx.textAlign="center"; ctx.fillStyle="rgba(200,190,240,.75)"; ctx.font="bold 26px sans-serif";
+            ctx.fillText(GAME.desktop?"スペース / ボタンで閉じる（歩き回れます）":"右トリガー2回で閉じる（歩き回れます）",384,746);
             tex.needsUpdate=true; mesh.visible=true;
         }
     };
@@ -1291,7 +2067,9 @@ function dexFoundCount(){ let n=0; for(let i=0;i<8;i++) if(dexData[i]&&dexData[i
 function clearRunWorld(){
     clearTargets();
     artModels.forEach(m=>{ if(m) m.visible=false; });
-    infoPanels.forEach(p=>{ if(p.userData.link) scene.remove(p.userData.link); scene.remove(p); }); infoPanels.length=0;
+    clearDinoReveal();
+    closeHologram();
+    infoPanels.forEach(p=>{ if(p.userData.link) stage.remove(p.userData.link); stage.remove(p); }); infoPanels.length=0;
     clearAuras(); popAnims.length=0;
 }
 function resetDexForRun(){
@@ -1302,7 +2080,7 @@ function taBeginCountdown(){
     resetDexForRun(); clearRunWorld();
     GAME.recent.length=0; GAME.doneIdx.clear();
     coachTimer=2; wasDigReady=false;
-    GAME.score=0; GAME.timeLeft=TIME_LIMIT;
+    GAME.score=0; GAME.timeLeft=TIME_LIMIT; GAME.askCount=0; GAME.digScore=0;
     TA.state="countdown"; TA.cdEnd=performance.now()+COUNTDOWN_MS;
     worldHud.drawCountdown("3","まもなくスタート");
     bubble.say(line("start"), 2200);
@@ -1317,14 +2095,19 @@ function taStartRun(){
     updateGoal(); updateTAButton();
 }
 function taFinish(){
-    TA.lastScore=GAME.score;
-    if(GAME.score>0) recordTimeAttack(GAME.score);
+    const digPts=GAME.digScore||0;
+    const secs=Math.max(0, Math.ceil(GAME.timeLeft));
+    const asks=GAME.askCount||0;
+    const timeBonus=secs*30, askPenalty=asks*10;
+    const score=Math.max(0, digPts + timeBonus - askPenalty);
+    GAME.score=score; TA.lastScore=score;
+    if(score>0) recordTimeAttack(score);
     clearTargets();
     TA.state="results";
-    TA.lockUntil=performance.now()+1500;      // ひと呼吸おいてから入力を受け付ける
+    TA.lockUntil=performance.now()+1500;
     sfxTimeUp();
     const found=dexFoundCount();
-    worldHud.drawResults(GAME.score, found, loadTA());
+    worldHud.drawResults(score, found, loadTA(), {digPts, secs, timeBonus, asks, askPenalty});
     bubble.say(found>=8 ? line("done") : line("again"), 4000);
     updateGoal(); updateTAButton();
 }
@@ -1352,7 +2135,8 @@ function updateTAButton(){
 /* HUD更新 */
 function updateGoal(){
     const el=document.getElementById("dGoal");
-    if(GAME.mode==="collect"){ el.textContent=`コレクション：${GAME.collectedCount} / 8 発掘（残り${8-GAME.collectedCount}）`; }
+    const tgt=(GAME.digTarget==="dino")?"恐竜":"出土品";
+    if(GAME.mode==="collect"){ el.textContent=`コレクション：${tgt} ${GAME.collectedCount} / 8 発掘（残り${8-GAME.collectedCount}）`; }
     else if(TA.state==="ready")    { el.textContent="タイムアタック：スタート待ち（右トリガー / スペース）"; }
     else if(TA.state==="countdown"){ el.textContent="タイムアタック：まもなくスタート！"; }
     else if(TA.state==="results")  { el.textContent=`タイムアタック：結果 ${TA.lastScore}pt`; }
@@ -1373,6 +2157,23 @@ document.getElementById("dBuddy").onclick=()=>{
     setCompanion(keys[(keys.indexOf(companionKind)+1)%keys.length]);
 };
 document.getElementById("dDex").onclick=()=>{ refreshDexHTML(); document.getElementById("dex").classList.add("open"); };
+// TOP5 記録モーダル
+function openTAModal(){
+    const list=loadTA(); const el=document.getElementById("taModalList");
+    if(!list.length){ el.innerHTML='<div style="text-align:center;color:rgba(200,190,240,.6);padding:20px;">まだ記録がありません</div>'; }
+    else{ el.innerHTML=list.slice(0,5).map((e,i)=>
+        '<div style="display:flex;align-items:center;justify-content:space-between;padding:9px 6px;border-bottom:1px solid rgba(216,180,106,.2);">'
+        +'<span style="font-weight:800;color:#f0d98a;width:28px;">'+(i+1)+'.</span>'
+        +'<span style="flex:1;text-align:center;font-weight:800;font-size:19px;">'+e.score+' pt</span>'
+        +'<span style="font-size:12px;color:rgba(200,190,240,.75);text-align:right;">'+((e.date||"")+(e.time?" "+e.time:""))+'</span>'
+        +'</div>').join(""); }
+    document.getElementById("taModal").style.display="flex";
+}
+{ const rb=document.getElementById("dRecords"); if(rb) rb.onclick=openTAModal; }
+{ const rb2=document.getElementById("openRecords"); if(rb2) rb2.onclick=openTAModal; }
+document.getElementById("taModalClose").onclick=()=>{ document.getElementById("taModal").style.display="none"; };
+document.getElementById("taResetAll").onclick=()=>{ if(confirm("すべてのタイムアタック記録を削除します。よろしいですか？")){ saveTA([]); openTAModal(); } };
+document.getElementById("taModal").addEventListener("click",e=>{ if(e.target.id==="taModal") e.currentTarget.style.display="none"; });
 document.getElementById("dQuit").onclick=()=> endGame(true);
 
 let toastT=null;
@@ -1530,7 +2331,7 @@ function spawnDirt(pos, n=8){
         if(!d){
             const s=0.05+Math.random()*0.05;
             d={ mesh:new THREE.Mesh(new THREE.BoxGeometry(s,s,s), dirtMat), v:new THREE.Vector3(), life:0, alive:false };
-            scene.add(d.mesh); dirtPool.push(d);
+            stage.add(d.mesh); dirtPool.push(d);
         }
         const a=Math.random()*Math.PI*2, sp=0.8+Math.random()*1.4;
         d.mesh.position.set(pos.x+(Math.random()-0.5)*0.3, GROUND_Y+0.12, pos.z+(Math.random()-0.5)*0.3);
@@ -1615,6 +2416,7 @@ function doDig(t){
 function discoverTarget(t){
     if(t.discovered) return;
     t.discovered=true; t.marker.visible=true;
+    digBusy=true; digBusySpot=t.pos.clone(); digBusyUntil=0;   // 発見〜発掘完了2秒後まで ヒント/撫でを止める
     // 掘れるブロックを実体として見せる（タップ/照準の目標になる）
     if(t.block){ t.block.material.opacity=0.95; t.block.material.transparent=false; }
     sfxLocate(); vibrate(120,0.7);
@@ -1666,24 +2468,39 @@ let handDigCooldown=0;
  * おまけ：相棒をなでる
  * ===================================================== */
 let petCooldown=0, petWiggle=0;
+let petBoost=0;                 // 撫でるほど上がる「当てる確率」ボーナス(0〜0.5)
+let dogAttentive=false;         // 相棒がプレイヤーを向いて待っている（撫でられる状態）
+let digBusy=false, digBusySpot=null, digBusyUntil=0;  // 発掘中はヒント/撫でを止める区間
+let sparkleCd=0;                // 当てる確率キラキラの発生タイマー
+let lastProbes=[];             // 直近の探査デバイス（手/コントローラー）＝撫で判定に使用
 const PET_LINES=["うれしいワン！","もっと なでて ワン♪","えへへ…ワン","がんばるワン！"];
+function currentHitProb(){ let base=0.5; const tg=GAME.targets.find(x=>!x.discovered); if(tg&&tg.diff) base=tg.diff.dogRel; return Math.min(1, base+petBoost); }
 function petDog(){
     if(petCooldown>0) return;
-    petCooldown=1.6; petWiggle=1.2;
+    if(digBusy) return;                          // 発掘中はなでない
+    petCooldown=1.6; petWiggle=1.4;
+    petBoost=Math.min(0.6, petBoost+0.12);       // 撫でるほど当てる確率アップ（大きめ）
     sfxBark();
-    bubble.say(line("pet") || PET_LINES[(Math.random()*PET_LINES.length)|0], 2000);
+    // 発掘可能状態か？（コレクション未コンプ／タイムアタック計測中）
+    const digable = (GAME.mode==="collect" && GAME.collectedCount<8) || (GAME.mode==="time" && TA.state==="run");
+    let petLine;
+    if(!digable){ petLine="うれしいワン！\nなでなで だいすき"; }   // コンプリート/結果/スタンバイ時
+    else { const p=currentHitProb();                             // 発掘可能時は当てる確率でセリフ変化
+        petLine = p>=0.99 ? "うれしいワン！\nぜったい見つかるワン！"
+            : p>=0.8 ? "うれしいワン！\n見つけられそう！"
+            : p>=0.6 ? "なでなで うれしい♪\nもう少しで分かるワン"
+            : "うれしいワン！\nまだ 自信ないワン…"; }
+    bubble.say(petLine, 2000);
     vibrate(90,0.5);
-    // ハートを飛ばす
     spawnHearts(dog.position);
 }
-// VR：手/コントローラーが相棒の頭に近づいたらなでる
+// VR：道具を持たず・相棒が注視中で・忙しくない時、相棒の近くで手を往復（撫でる）させたら喜ぶ
 function checkPetVR(){
-    if(anyDigReady) return;   // 掘れる状態のときは発掘を優先
-    const head=dog.getWorldPosition(new THREE.Vector3()); head.y += 0.55;   // 頭のあたり
-    const devices=[rightCtrl,leftCtrl].filter(c=>c && c.userData.handedness);
-    for(const c of devices){
-        const p=c.getWorldPosition(new THREE.Vector3());
-        if(p.distanceTo(head) < 0.45 && (c.userData.shakeSpeed||0) > 0.5){ petDog(); return; }
+    if(!renderer.xr.isPresenting) return;
+    if(rightHeld || digBusy || !dogAttentive) return;    // 道具中/発掘中/相棒が向いていない時はなでない
+    const c=dog.getWorldPosition(new THREE.Vector3()); c.y += 0.4;
+    for(const pr of lastProbes){                          // 手（指先）もコントローラーも対象
+        if(pr && pr.pos && pr.pos.distanceTo(c) < 0.6 && (pr.sp||0) > 0.6){ petDog(); return; }   // 近くで少し動かす＝撫でる（甘め）
     }
 }
 // PC：画面中央が相棒に当たっていればなでる（厳密判定）
@@ -1735,8 +2552,8 @@ const heartTex=(function(){
 function spawnHearts(pos, n=4){
     for(let i=0;i<n;i++){
         let h=hearts.find(x=>!x.alive);
-        if(!h){ h={ spr:new THREE.Sprite(new THREE.SpriteMaterial({map:heartTex, transparent:true, depthTest:false})), life:0, alive:false, vx:0, vz:0 };
-            h.spr.scale.set(0.22,0.22,1); scene.add(h.spr); hearts.push(h); }
+        if(!h){ h={ spr:new THREE.Sprite(new THREE.SpriteMaterial({map:heartTex, transparent:true, depthTest:true})), life:0, alive:false, vx:0, vz:0 };
+            h.spr.scale.set(0.22,0.22,1); stage.add(h.spr); hearts.push(h); }
         h.spr.position.set(pos.x+(Math.random()-0.5)*0.3, pos.y+0.7, pos.z+(Math.random()-0.5)*0.3);
         h.vx=(Math.random()-0.5)*0.3; h.vz=(Math.random()-0.5)*0.3;
         h.life=1.4; h.alive=true; h.spr.visible=true; h.spr.material.opacity=1;
@@ -1749,6 +2566,36 @@ function updateHearts(dt){
         h.spr.position.y+=dt*0.7; h.spr.position.x+=h.vx*dt; h.spr.position.z+=h.vz*dt;
         h.spr.material.opacity=Math.max(0,h.life/1.4);
         if(h.life<=0){ h.alive=false; h.spr.visible=false; }
+    }
+}
+// キラキラ（ひらめき）演出：当てる確率インジケータ用
+const sparkles=[];
+const sparkleTex=(function(){
+    const cv=document.createElement("canvas"); cv.width=cv.height=64; const c=cv.getContext("2d");
+    c.translate(32,32);
+    const grd=c.createRadialGradient(0,0,0,0,0,30); grd.addColorStop(0,"rgba(255,255,220,1)"); grd.addColorStop(0.4,"rgba(255,230,120,.9)"); grd.addColorStop(1,"rgba(255,220,90,0)");
+    c.fillStyle=grd; c.beginPath(); c.arc(0,0,30,0,Math.PI*2); c.fill();
+    c.fillStyle="rgba(255,255,240,.95)";               // 4方向のきらめき
+    for(let k=0;k<4;k++){ c.rotate(Math.PI/2); c.beginPath(); c.moveTo(0,-28); c.lineTo(4,-6); c.lineTo(0,0); c.lineTo(-4,-6); c.closePath(); c.fill(); }
+    return new THREE.CanvasTexture(cv);
+})();
+function spawnSparkle(pos, n=1){
+    for(let i=0;i<n;i++){
+        let s=sparkles.find(x=>!x.alive);
+        if(!s){ s={ spr:new THREE.Sprite(new THREE.SpriteMaterial({map:sparkleTex, transparent:true, depthTest:true, blending:THREE.AdditiveBlending})), life:0, alive:false, vy:0 };
+            s.spr.scale.set(0.18,0.18,1); stage.add(s.spr); sparkles.push(s); }
+        s.spr.position.set(pos.x+(Math.random()-0.5)*0.26, pos.y+0.72+Math.random()*0.14, pos.z+(Math.random()-0.5)*0.26);
+        s.vy=0.18+Math.random()*0.14; s.life=0.9; s.alive=true; s.spr.visible=true; s.spr.material.opacity=1;
+    }
+}
+function updateSparkles(dt){
+    const now=performance.now();
+    for(const s of sparkles){
+        if(!s.alive) continue;
+        s.life-=dt; s.spr.position.y+=s.vy*dt;
+        const k=Math.max(0,s.life); s.spr.material.opacity=k*(0.6+0.4*Math.abs(Math.sin(now*0.02)));  // チカチカ
+        s.spr.scale.setScalar(0.12+0.08*k);
+        if(s.life<=0){ s.alive=false; s.spr.visible=false; }
     }
 }
 
@@ -1774,13 +2621,15 @@ renderer.setAnimationLoop(()=>{
         const y = r<0.5 ? THREE.MathUtils.lerp(a.startY,a.peakY, r*2)
                         : THREE.MathUtils.lerp(a.peakY,a.endY,(r-0.5)*2);
         a.obj.position.set(a.x, y, a.z); a.obj.rotation.y+=0.12;
-        if(r>=1){ popAnims.splice(i,1); }
+        if(r>=1){ if(a.dino && a.obj.userData) a.obj.userData.settled=true; popAnims.splice(i,1); }
     }
+    tickHatch(now, dt);        // 恐竜モード：たまごの揺れ＆孵化
+    animateDigDinos(now, dt);  // 出てきた恐竜の足踏み・尻尾ふり・回転・上下
     // 発掘済みモデルを回転
     artModels.forEach(m=>{ if(m&&m.visible) m.rotation.y+=0.005; });
     // 情報パネルをカメラへ向ける
     const camPos=camera.getWorldPosition(tmpV2);
-    infoPanels.forEach(p=>{ p.lookAt(camPos.x,p.position.y,camPos.z); });
+    infoPanels.forEach(p=>{ p.lookAt(camPos); });   // 自分（カメラ）の方を向く（高い位置でも見下ろす向きに）
     // オーラの脈動（発掘後ずっと光り続ける）
     for(const a of auras){
         const pulse=0.85+Math.sin(now*0.003+a.phase)*0.15;
@@ -1839,11 +2688,16 @@ renderer.setAnimationLoop(()=>{
     updateWorldHud();
     updateDirt(dt);
     updateHearts(dt);
+    updateSparkles(dt);
     if(petCooldown>0) petCooldown-=dt;
     if(GAME.active){ updateDigReady(); updateBlockGlow(now); updateAim(isVR); updateCoach(dt); if(isVR) checkPetVR(); }
 
     // 左手のひらの発掘図鑑パネル
     updateDexPanel();
+    updateHandModels();   // 手モデルは右手だけ
+    updateDexHover();
+    updateTAClock();    // カウントダウン/残り時間を図鑑の近くに
+    updateHologram();   // 左手に追従＋カメラ向き＋モデルのモーション
 
     // デスクトップのカメラ向き適用
     if(GAME.desktop && !isVR){
@@ -1854,16 +2708,24 @@ renderer.setAnimationLoop(()=>{
     renderer.render(scene,camera);
 });
 
-/* VR移動：左スティックで前後左右、右スティックXでスナップ回転 */
+/* VR移動：左スティックで前後左右、右スティックXでスナップ回転
+   右中指グリップ押下中は、右スティック 上下＝ワールド高さ／左右＝相棒との距離 を調整 */
 let snapCooldown=0;
 function handleVRLocomotion(dt){
     const s=renderer.xr.getSession(); if(!s) return;
-    let moveX=0,moveY=0,turn=0;
+    let moveX=0,moveY=0,turn=0, rGrip=false, rStickX=0, rStickY=0;
     for(const src of s.inputSources){
         const gp=src.gamepad; if(!gp) continue;
         const ax=gp.axes||[];
         if(src.handedness==="left"){ moveX=ax[2]||0; moveY=ax[3]||0; }
-        else if(src.handedness==="right"){ turn=ax[2]||0; }
+        else if(src.handedness==="right"){ turn=ax[2]||0; rStickX=ax[2]||0; rStickY=ax[3]||0;
+            rGrip = !!(gp.buttons && gp.buttons[1] && gp.buttons[1].pressed); }   // buttons[1]=中指グリップ(squeeze)
+    }
+    // 右中指グリップ＋右スティック：ワールド高さ（上下）＆相棒距離（左右）を調整
+    if(rGrip){
+        if(Math.abs(rStickY)>0.15) adjustWorldHeight(-rStickY*WORLD_H_SPEED*dt);   // 上に倒す(負)＝サイトを上げる
+        if(Math.abs(rStickX)>0.15) adjustDogDist(rStickX*DOG_DIST_SPEED*dt);        // 右＝相棒を遠ざける／左＝近づける
+        turn=0;   // 調整中はスナップ回転しない
     }
     // 移動（頭の向き基準）
     if(Math.abs(moveX)>0.15||Math.abs(moveY)>0.15){
@@ -1916,18 +2778,19 @@ function updateScan(dt, isVR, now){
             const p=c.getWorldPosition(new THREE.Vector3());
             const sp=p.distanceTo(c.userData.prevPos)/Math.max(dt,1e-3);
             c.userData.prevPos.copy(p); c.userData.shakeSpeed=sp;
-            probes.push({pos:p, shaking:sp>1.2, haptic:true, handedness:c.userData.handedness});
+            probes.push({pos:p, shaking:sp>1.2, sp, haptic:true, handedness:c.userData.handedness});
         });
         // ハンドトラッキング（コントローラ無し時）
         hands.forEach(h=>{
             const joint=h.joints?.["index-finger-tip"]||h.joints?.["wrist"];
             if(joint){ const p=joint.getWorldPosition(new THREE.Vector3());
                 const sp=p.distanceTo(h.userData.prevPos)/Math.max(dt,1e-3); h.userData.prevPos.copy(p);
-                probes.push({pos:p, shaking:sp>1.0, haptic:false, isHand:true}); }
+                probes.push({pos:p, shaking:sp>1.0, sp, haptic:false, isHand:true}); }
         });
     } else if(GAME.desktop){
-        probes.push({pos:desktopProbe().clone(), shaking:true, haptic:false, isHand:false}); // デスクトップは常時探査
+        probes.push({pos:desktopProbe().clone(), shaking:true, sp:99, haptic:false, isHand:false}); // デスクトップは常時探査
     }
+    lastProbes = probes;   // 撫で判定（手/コントローラー共通）に使う
 
     // 各ターゲットについて最大信号を求める
     let heat=0;
@@ -1956,7 +2819,7 @@ function updateScan(dt, isVR, now){
     }
     // 発掘：狙ったブロックに向けてコントローラー/手を振ると掘れる（VR）
     if(handDigCooldown>0) handDigCooldown-=dt;
-    if(isVR && handDigCooldown<=0 && aimedTarget){
+    if(isVR && handDigCooldown<=0 && aimedTarget && toolActive){   // 道具が出ている間だけ掘れる
         for(const pr of probes){
             if(!pr.shaking) continue;
             if(digAimed()){ handDigCooldown=0.35; }
@@ -1973,24 +2836,63 @@ function updateScan(dt, isVR, now){
 }
 
 /* VR：右手トリガー＝進行/相棒に聞く、左手トリガー＝道具の持ち替え（発掘は振る動作） */
+// 右トリガー押下（立ち上がり）：図鑑を指していればホログラム／それ以外は二回連続で相棒に聞く
+function onRightPressEdge(){
+    if(dexHolder.visible && dexPanel.hover>=0){
+        const e=dexData[dexPanel.hover];
+        if(e && e.found) toggleHologram(dexPanel.hover);   // 発掘済みのみ選択可（未発掘は無反応）
+        return;
+    }
+    const now=performance.now();
+    if(now-lastRightPress<400){ lastRightPress=0; onRightDouble(); }   // 2回連続で実行
+    else lastRightPress=now;
+}
+function onRightDouble(){
+    if(GAME.mode==="time" && taAdvance()) return;                                       // 開始/結果閉じ/再挑戦（すべて2回連続）
+    if(GAME.mode==="collect" && GAME.collectedCount>=8){ restartCollection(); return; } // コンプリート後の再開
+    askDog();                                                                           // 通常＝相棒に聞く
+}
+function restartCollection(){
+    resetDexForRun(); clearRunWorld();
+    GAME.recent.length=0; GAME.doneIdx.clear();
+    GAME.collectedCount=0; GAME.score=0;
+    afterSite(()=>{ clearTargets(); spawnTarget(0); });
+    updateGoal(); showToast("図鑑をリセット。もう一度発掘スタート！");
+}
+// Ｙボタン長押し：図鑑リセット。TAはカウントダウン直前のスタンバイ状態へ
+function resetDexAndStandby(){
+    resetDexForRun(); clearRunWorld();
+    GAME.recent.length=0; GAME.doneIdx.clear();
+    GAME.collectedCount=0; GAME.score=0; GAME.askCount=0;
+    digBusy=false; digBusySpot=null; digBusyUntil=0; petBoost=0;
+    afterSite(()=>clearTargets());
+    if(GAME.mode==="time"){ TA.state="ready"; worldHud.hide(); if(typeof taClock!=="undefined") taClock.show(false); showToast("図鑑リセット。右トリガーでスタート"); }
+    else { afterSite(()=>spawnTarget(0)); showToast("図鑑をリセットしました"); }
+    updateGoal(); updateTAButton();
+}
 function handleVRDig(){
     const s=renderer.xr.getSession(); if(!s) return;
     unlockAudio();
     for(const src of s.inputSources){
         const gp=src.gamepad; if(!gp) continue;
+        if(src.hand) continue;                 // 手（ハンドトラッキング）はselectstart/endで処理
         const trig = gp.buttons[0]?.pressed ?? false;
         const which = src.handedness==="left"?1:0;
-        if(trig && !prevTriggers[which]){
-            if(src.handedness==="right"){ if(!taAdvance()) askDog(); }
-            else if(src.handedness==="left"){ toggleTool(); }
+        if(src.handedness==="right"){
+            if(trig && !prevTriggers[which]){ rightDownAt=performance.now(); onRightPressEdge(); }
+            rightHeld = trig;
+        } else if(src.handedness==="left"){
+            if(trig && !prevTriggers[which]) toggleTool();
         }
         prevTriggers[which]=trig;
     }
-    // Bボタンで道具切替（右手）／ Yボタンで図鑑の固定表示（左手）
+    toolActive = rightHeld && (performance.now()-rightDownAt > 220);   // 0.22秒以上の保持で道具（2回押しの一瞬表示を防ぐ）
+    toolHolder.visible = GAME.active && toolActive;
+    // B=道具切替（右手）／ A=犬に聞く／ Ｙ長押し=図鑑リセット（左手）
     for(const src of s.inputSources){
         if(src.handedness==="right" && src.gamepad){
             const b=src.gamepad.buttons[5]?.pressed ?? false;
-            if(b && !GAME._prevB){ toggleTool(); }
+            if(b && !GAME._prevB){ toggleTool(); }   // B：道具切替（長押しの発火は廃止）
             GAME._prevB=b;
             const a=src.gamepad.buttons[4]?.pressed ?? false;   // Aボタンで犬に聞く
             if(a && !GAME._prevA){ askDog(); }
@@ -1998,7 +2900,10 @@ function handleVRDig(){
         }
         if(src.handedness==="left" && src.gamepad){
             const y=src.gamepad.buttons[5]?.pressed ?? false;
-            if(y && !GAME._prevY){ dexPinned=!dexPinned; showToast(dexPinned?"📖 図鑑を固定表示":"📖 図鑑：手のひらを返すと表示"); }
+            if(y && !GAME._prevY){ GAME._yDownAt=performance.now(); GAME._yFired=false; }
+            if(y && !GAME._yFired && performance.now()-(GAME._yDownAt||0)>800){   // Y長押し＝図鑑リセット
+                GAME._yFired=true; resetDexAndStandby(); vibrate(200,0.95); chord([523,784,1047],0.06,"triangle",0.5); showToast("Y長押し：図鑑リセット");
+            }
             GAME._prevY=y;
         }
     }
@@ -2063,14 +2968,48 @@ function updateDog(dt, now){
     const moved = Math.hypot(dog.position.x-prevX, dog.position.z-prevZ);
     const moving = moved > 0.004;
 
-    // 向き：進行方向 or プレイヤー
+    // 向き：進行方向 or プレイヤー（最短角でなめらかに追従＝切替時の小刻み揺れを防ぐ）
     const faceDir = moving ? to : new THREE.Vector3().subVectors(playerPos,dog.position);
-    if(faceDir.lengthSq()>1e-3){ const yaw=Math.atan2(faceDir.x,faceDir.z); dog.rotation.y=THREE.MathUtils.lerp(dog.rotation.y, yaw, 0.18); }
+    if(faceDir.lengthSq()>1e-3){
+        const yaw=Math.atan2(faceDir.x,faceDir.z);
+        let d=yaw-dog.rotation.y; while(d>Math.PI)d-=2*Math.PI; while(d<-Math.PI)d+=2*Math.PI;
+        dog.rotation.y += d*0.08;
+    }
+    // セリフ吹き出しは、プレイヤーから見て相棒の「奥側」に出す（相棒の向きに関係なく）
+    if(bubbleSpr){
+        dog.updateMatrixWorld();
+        const dogW=dog.getWorldPosition(new THREE.Vector3());
+        const away=new THREE.Vector3(dogW.x-playerPos.x,0,dogW.z-playerPos.z);
+        if(away.lengthSq()<1e-4) away.set(0,0,1); away.normalize();
+        const want=new THREE.Vector3(dogW.x+away.x*0.5, dogW.y+1.0, dogW.z+away.z*0.5);
+        bubbleSpr.position.copy(dog.worldToLocal(want));
+    }
+    // 発掘中の解除：完了2秒後、または プレイヤーと相棒の両方が発掘ポイントから離れたら
+    if(digBusy){
+        const now2=performance.now();
+        const pFar=!digBusySpot || Math.hypot(playerPos.x-digBusySpot.x, playerPos.z-digBusySpot.z) > 6;
+        const dFar=!digBusySpot || Math.hypot(dog.position.x-digBusySpot.x, dog.position.z-digBusySpot.z) > 6;
+        if((digBusyUntil>0 && now2>digBusyUntil) || (pFar && dFar)){ digBusy=false; digBusySpot=null; digBusyUntil=0; }
+    }
+    // 相棒が「プレイヤーを向いて待っている」状態か（撫でられる条件）
+    {
+        const fwd=new THREE.Vector3(Math.sin(dog.rotation.y),0,Math.cos(dog.rotation.y));
+        const toP=new THREE.Vector3(playerPos.x-dog.position.x,0,playerPos.z-dog.position.z);
+        dogAttentive = !moving && !digBusy && toP.lengthSq()>1e-4 && fwd.dot(toP.normalize())>0.4;
+    }
+    petBoost=Math.max(0, petBoost - dt*0.02);   // 撫でボーナスはゆっくり減衰
+    // 当てる確率のキラキラ（頭上）：100%多め / 80%以上ふつう / 60%以上少し / 未満なし
+    { const prob=currentHitProb();
+      let rate=0, n=1;
+      if(prob>=0.99){ rate=0.12; n=3; } else if(prob>=0.8){ rate=0.4; n=1; } else if(prob>=0.6){ rate=1.1; n=1; }
+      sparkleCd-=dt;
+      if(rate>0 && sparkleCd<=0 && !digBusy){ sparkleCd=rate; spawnSparkle(dog.position, n); }
+    }
 
     // 歩行アニメ（脚の振り＋上下バウンド）
-    _dogWalkPhase += (moving?11:0)*dt;
+    _dogWalkPhase += (moving?6.5:0)*dt;   // 歩調をゆっくり（重量感）。移動速度自体は不変
     const body=activeBody();
-    if(body.userData.legs){ body.userData.legs.forEach(p=>{ p.rotation.x = Math.sin(_dogWalkPhase + p.userData.phase) * (moving?0.6:0.0); }); }
+    if(body.userData.legs){ body.userData.legs.forEach(p=>{ const sw=Math.sin(_dogWalkPhase + p.userData.phase)*(moving?0.5:0.0); p.rotation.x += (sw - p.rotation.x)*0.2; }); }
     // 羽を持つ相棒（将来のマスコット等）は羽ばたく
     if(body.userData.wings){
         const flapSpeed = moving ? 0.028 : 0.010;
@@ -2080,13 +3019,18 @@ function updateDog(dt, now){
         if(body.userData.petals) body.userData.petals.rotation.y += (moving?0.012:0.004);
     }
     const bob = moving ? Math.abs(Math.sin(_dogWalkPhase))*0.06 : 0;
-    if(body.userData.tail) body.userData.tail.rotation.z=Math.sin(now*0.02)*0.5;
+    if(body.userData.tail){ const wag = moving ? Math.sin(_dogWalkPhase*1.3)*0.6 : Math.sin(now*0.009)*0.35;
+        body.userData.tail.rotation.y += (wag - body.userData.tail.rotation.y)*0.2; }   // 歩くとよく振る／待機もゆるく振る
 
-    // お祝いジャンプ / 接地高さ
-    if(petWiggle>0){ petWiggle-=dt; dog.rotation.y += Math.sin(now*0.02)*0.05; }
+    // なでられて喜ぶ（ゆっくり可愛く）／お祝いジャンプ／接地高さ
+    if(petWiggle>0) petWiggle-=dt;
     if(dogCelebrateT>0){ dogCelebrateT-=dt;
         dog.position.y=GROUND_Y+DOG_Y+Math.abs(Math.sin(dogCelebrateT*4.2))*0.35;   // ゆっくり弾む
         dog.rotation.y += Math.sin(dogCelebrateT*7)*0.02;                            // うれしそうに体をひねる
+    }
+    else if(petWiggle>0){
+        dog.rotation.y += Math.sin(now*0.010)*0.035;                                 // ゆっくり左右にゆれる
+        dog.position.y=GROUND_Y+DOG_Y+Math.abs(Math.sin(petWiggle*6.5))*0.08;        // 小さくぴょこぴょこ
     }
     else dog.position.y=GROUND_Y+DOG_Y+bob;
 }

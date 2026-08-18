@@ -1418,7 +1418,10 @@ function drawRandomCompanion(){
     setCompanion(pick); return pick;
 }
 // スタンバイ中だけ相棒選択（デスクトップ/スマホ）。VRは grip+トリガー+X/Y
-function isStandby(){ try{ return (typeof GAME!=="undefined" && GAME.active && ((GAME.mode==="time" && typeof TA!=="undefined" && TA.state==="ready") || (GAME.mode!=="time" && GAME.standby))); }catch(e){ return false; } }
+function isStandby(){ try{ return (typeof GAME!=="undefined" && GAME.active && (
+    (GAME.mode==="time" && typeof TA!=="undefined" && (TA.state==="ready"||TA.state==="free"||TA.state==="results")) ||
+    (GAME.mode!=="time" && (GAME.standby || GAME.complete))
+)); }catch(e){ return false; } }
 function updateBuddyStandbyUI(){
     let el=document.getElementById("buddyStandby");
     const show = (typeof GAME!=="undefined" && GAME.desktop && isStandby());
@@ -1494,8 +1497,8 @@ function showCompanionCard(k, bag){
 let _buddyCardVR=null, _buddyCardVRHide=0;
 function showBuddyCardVR(k){
     const c=COMPANIONS[k]; if(!c || typeof scene==="undefined") return;
-    const cv=document.createElement("canvas"); cv.width=512; cv.height=680; const g=cv.getContext("2d");
-    g.fillStyle="#241f13"; g.fillRect(0,0,512,680); g.strokeStyle="#e6c26a"; g.lineWidth=12; g.strokeRect(8,8,496,664);
+    const cv=document.createElement("canvas"); cv.width=512; cv.height=820; const g=cv.getContext("2d");
+    g.fillStyle="#241f13"; g.fillRect(0,0,512,820); g.strokeStyle="#e6c26a"; g.lineWidth=12; g.strokeRect(8,8,496,804);
     g.textAlign="center"; g.fillStyle="#fdf3d5"; g.font="bold 40px sans-serif"; g.fillText((c.label||k).split(" ")[0]+" "+(c.fullName||c.label||k),256,74);
     { const RST={"超激レア":5,"激レア":4,"レア":3,"プチレア":2,"ノーマル":1}; const lv=RST[c.rarity]||1;
       g.fillStyle="#ffd86a"; g.font="bold 26px sans-serif"; g.fillText((c.rarity||"")+"カード "+"★".repeat(lv)+"☆".repeat(5-lv),256,116); }
@@ -1516,19 +1519,25 @@ function showBuddyCardVR(k){
     g.fillStyle="#cdbf94"; g.font="18px sans-serif"; let yy=wrap(c.dinoFeat,36,478,440,24);
     g.fillStyle="#bfb488"; g.font="18px sans-serif"; yy=wrap(c.feature,36,yy+6,440,24);
     g.fillStyle="#fdf3d5"; g.font="21px sans-serif"; const yy2=wrap(c.cardText,36,yy+12,440,28);
-    g.fillStyle="#4a3d17"; g.fillRect(146,632,220,40); g.strokeStyle="#e6c26a"; g.lineWidth=3; g.strokeRect(146,632,220,40);
-    g.fillStyle="#fff"; g.font="bold 22px sans-serif"; g.textAlign="center"; g.fillText("閉じる",256,652);
+    g.fillStyle="#4a3d17"; g.fillRect(146,716,220,48); g.strokeStyle="#e6c26a"; g.lineWidth=3; g.strokeRect(146,716,220,48);
+    g.fillStyle="#fff"; g.font="bold 24px sans-serif"; g.textAlign="center"; g.fillText("閉じる",256,740);
     const tex=new THREE.CanvasTexture(cv);
-    if(!_buddyCardVR){ _buddyCardVR=new THREE.Mesh(new THREE.PlaneGeometry(0.51,0.775), new THREE.MeshBasicMaterial({map:tex,transparent:true,depthTest:true})); _buddyCardVR.renderOrder=1000; scene.add(_buddyCardVR); }
+    if(!_buddyCardVR){ _buddyCardVR=new THREE.Mesh(new THREE.PlaneGeometry(0.51,0.875), new THREE.MeshBasicMaterial({map:tex,transparent:true,depthTest:true})); _buddyCardVR.renderOrder=1000; scene.add(_buddyCardVR); }
     else { if(_buddyCardVR.material.map) _buddyCardVR.material.map.dispose(); _buddyCardVR.material.map=tex; _buddyCardVR.material.depthTest=true; }
     _buddyCardVR.visible=true;   // 閉じる/スタートまで表示
 }
 function updateBuddyCardVR(){
     if(!_buddyCardVR || !_buddyCardVR.visible) return;                 // 自動では消さない（閉じるボタン/スタートまで表示）
-    const cw=camera.getWorldPosition(new THREE.Vector3());
     const q=camera.getWorldQuaternion(new THREE.Quaternion());
-    const fwd=new THREE.Vector3(0,0,-1).applyQuaternion(q);
-    _buddyCardVR.position.copy(cw).addScaledVector(fwd,0.9).add(new THREE.Vector3(0,-0.15,0));   // 0.2m奥・0.1m下（前回より0.1m上げ）
+    if(leftCtrl){   // 左手に追従（左手の少し上・奥）
+        const lo=leftCtrl.getWorldPosition(new THREE.Vector3());
+        const fwd=new THREE.Vector3(0,0,-1).applyQuaternion(q);
+        _buddyCardVR.position.copy(lo).addScaledVector(fwd,0.32).add(new THREE.Vector3(0,0.28,0));
+    } else {
+        const cw=camera.getWorldPosition(new THREE.Vector3());
+        const fwd=new THREE.Vector3(0,0,-1).applyQuaternion(q);
+        _buddyCardVR.position.copy(cw).addScaledVector(fwd,0.9).add(new THREE.Vector3(0,-0.15,0));
+    }
     _buddyCardVR.quaternion.copy(q);                                    // 常にプレイヤー（カメラ）に正対
 }
 // VRランダムボタン（スタンバイ中・カメラ前方右下）
@@ -1544,11 +1553,17 @@ function updateBuddyRandomBtn(){
     if(!show){ if(_buddyRandomBtn) _buddyRandomBtn.visible=false; return; }
     if(!_buddyRandomBtn){ _buddyRandomBtn=new THREE.Mesh(new THREE.PlaneGeometry(0.3,0.1125), new THREE.MeshBasicMaterial({map:makeBuddyRandomBtnTex(),transparent:true,depthTest:true})); _buddyRandomBtn.renderOrder=1000; scene.add(_buddyRandomBtn); }   // 1.5倍
     _buddyRandomBtn.visible=true;
-    const cw=camera.getWorldPosition(new THREE.Vector3());
     const q=camera.getWorldQuaternion(new THREE.Quaternion());
-    const fwd=new THREE.Vector3(0,0,-1).applyQuaternion(q);
-    const right=new THREE.Vector3(1,0,0).applyQuaternion(q);
-    _buddyRandomBtn.position.copy(cw).addScaledVector(fwd,0.75).addScaledVector(right,-0.32).add(new THREE.Vector3(0,-0.22,0));   // 左側
+    if(leftCtrl){   // 左手に追従（左手のすぐ上）
+        const lo=leftCtrl.getWorldPosition(new THREE.Vector3());
+        const fwd=new THREE.Vector3(0,0,-1).applyQuaternion(q);
+        _buddyRandomBtn.position.copy(lo).addScaledVector(fwd,0.12).add(new THREE.Vector3(0,0.06,0));
+    } else {
+        const cw=camera.getWorldPosition(new THREE.Vector3());
+        const fwd=new THREE.Vector3(0,0,-1).applyQuaternion(q);
+        const right=new THREE.Vector3(1,0,0).applyQuaternion(q);
+        _buddyRandomBtn.position.copy(cw).addScaledVector(fwd,0.75).addScaledVector(right,-0.32).add(new THREE.Vector3(0,-0.22,0));
+    }
     _buddyRandomBtn.quaternion.copy(q);
 }
 

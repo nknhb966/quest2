@@ -1533,7 +1533,7 @@ function updateBuddyCardVR(){
         const lo=leftCtrl.getWorldPosition(new THREE.Vector3());
         const fwd=new THREE.Vector3(0,0,-1).applyQuaternion(q);
         const right=new THREE.Vector3(1,0,0).applyQuaternion(q);
-        _buddyCardVR.position.copy(lo).addScaledVector(fwd,0.32).addScaledVector(right,0.6).add(new THREE.Vector3(0,0.28,0));
+        _buddyCardVR.position.copy(lo).addScaledVector(fwd,0.62).addScaledVector(right,0.4).add(new THREE.Vector3(0,0.28,0));
     } else {
         const cw=camera.getWorldPosition(new THREE.Vector3());
         const fwd=new THREE.Vector3(0,0,-1).applyQuaternion(q);

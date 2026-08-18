@@ -1529,10 +1529,11 @@ function showBuddyCardVR(k){
 function updateBuddyCardVR(){
     if(!_buddyCardVR || !_buddyCardVR.visible) return;                 // 自動では消さない（閉じるボタン/スタートまで表示）
     const q=camera.getWorldQuaternion(new THREE.Quaternion());
-    if(leftCtrl){   // 左手に追従（左手の少し上・奥）
+    if(leftCtrl){   // 左手に追従（左手基準で右へ60cm・少し上）
         const lo=leftCtrl.getWorldPosition(new THREE.Vector3());
         const fwd=new THREE.Vector3(0,0,-1).applyQuaternion(q);
-        _buddyCardVR.position.copy(lo).addScaledVector(fwd,0.32).add(new THREE.Vector3(0,0.28,0));
+        const right=new THREE.Vector3(1,0,0).applyQuaternion(q);
+        _buddyCardVR.position.copy(lo).addScaledVector(fwd,0.32).addScaledVector(right,0.6).add(new THREE.Vector3(0,0.28,0));
     } else {
         const cw=camera.getWorldPosition(new THREE.Vector3());
         const fwd=new THREE.Vector3(0,0,-1).applyQuaternion(q);
@@ -1549,22 +1550,21 @@ function makeBuddyRandomBtnTex(){
     return new THREE.CanvasTexture(cv);
 }
 function updateBuddyRandomBtn(){
-    const show = renderer.xr.isPresenting && (typeof isStandby==="function" && isStandby());
+    const show = renderer.xr.isPresenting && buddyRandom && (typeof isStandby==="function" && isStandby());   // ランダム選択時のみ
     if(!show){ if(_buddyRandomBtn) _buddyRandomBtn.visible=false; return; }
     if(!_buddyRandomBtn){ _buddyRandomBtn=new THREE.Mesh(new THREE.PlaneGeometry(0.3,0.1125), new THREE.MeshBasicMaterial({map:makeBuddyRandomBtnTex(),transparent:true,depthTest:true})); _buddyRandomBtn.renderOrder=1000; scene.add(_buddyRandomBtn); }   // 1.5倍
     _buddyRandomBtn.visible=true;
     const q=camera.getWorldQuaternion(new THREE.Quaternion());
-    if(leftCtrl){   // 左手に追従（左手のすぐ上）
+    if(leftCtrl){   // 左手図鑑の下側・やや手前（プレイヤー側）
         const lo=leftCtrl.getWorldPosition(new THREE.Vector3());
-        const fwd=new THREE.Vector3(0,0,-1).applyQuaternion(q);
-        _buddyRandomBtn.position.copy(lo).addScaledVector(fwd,0.12).add(new THREE.Vector3(0,0.06,0));
+        const toP=camera.getWorldPosition(new THREE.Vector3()).sub(lo); toP.y=0; if(toP.lengthSq()>1e-4) toP.normalize();
+        _buddyRandomBtn.position.copy(lo).add(new THREE.Vector3(0,-0.12,0)).addScaledVector(toP,0.08);
     } else {
         const cw=camera.getWorldPosition(new THREE.Vector3());
         const fwd=new THREE.Vector3(0,0,-1).applyQuaternion(q);
-        const right=new THREE.Vector3(1,0,0).applyQuaternion(q);
-        _buddyRandomBtn.position.copy(cw).addScaledVector(fwd,0.75).addScaledVector(right,-0.32).add(new THREE.Vector3(0,-0.22,0));
+        _buddyRandomBtn.position.copy(cw).addScaledVector(fwd,0.7).add(new THREE.Vector3(0,-0.25,0));
     }
-    _buddyRandomBtn.quaternion.copy(q);
+    _buddyRandomBtn.quaternion.copy(q);   // プレイヤーに正対
 }
 
 // 吹き出しスプライト
@@ -3768,9 +3768,11 @@ function handleVRDig(){
             const x=src.gamepad.buttons[4]?.pressed ?? false;
             const selMode = grip && trig && (typeof isStandby==="function" && isStandby());   // 相棒選択はスタンバイ中のみ（スタート後は変更不可）
             if(selMode){
-                if(!GAME._prevSel){ if(buddyRandom){ const kk=drawRandomCompanion(); GAME._buddyIdx=COMPANION_ORDER.indexOf(kk); showBuddyCardVR(kk); vibrate(90,0.8); } else { GAME._buddyIdx=0; setCompanion(COMPANION_ORDER[0]); showBuddyCardVR(COMPANION_ORDER[0]); vibrate(60,0.6); } }   // ランダム時は抽選／通常は犬
-                if(x && !GAME._prevX){ GAME._buddyIdx=(GAME._buddyIdx+1)%COMPANION_ORDER.length; const kk=COMPANION_ORDER[GAME._buddyIdx]; setCompanion(kk); showBuddyCardVR(kk); vibrate(40,0.5); }   // X＝順
-                if(y && !GAME._prevY){ GAME._buddyIdx=(GAME._buddyIdx-1+COMPANION_ORDER.length)%COMPANION_ORDER.length; const kk=COMPANION_ORDER[GAME._buddyIdx]; setCompanion(kk); showBuddyCardVR(kk); vibrate(40,0.5); }   // Y＝逆
+                if(!GAME._prevSel){ GAME._buddyIdx=0; setCompanion("dog"); showBuddyCardVR("dog"); vibrate(60,0.6); }   // 押した瞬間は必ず犬
+                if(!buddyRandom){   // 「えらぶ」時のみ X/Y で切替（ランダム時は無効）
+                    if(x && !GAME._prevX){ GAME._buddyIdx=(GAME._buddyIdx+1)%COMPANION_ORDER.length; const kk=COMPANION_ORDER[GAME._buddyIdx]; setCompanion(kk); showBuddyCardVR(kk); vibrate(40,0.5); }   // X＝順
+                    if(y && !GAME._prevY){ GAME._buddyIdx=(GAME._buddyIdx-1+COMPANION_ORDER.length)%COMPANION_ORDER.length; const kk=COMPANION_ORDER[GAME._buddyIdx]; setCompanion(kk); showBuddyCardVR(kk); vibrate(40,0.5); }   // Y＝逆
+                }
                 GAME._prevX=x; GAME._prevY=y; GAME._prevSel=selMode; return;   // 選択中は通常のX/Y動作をしない
             }
             GAME._prevSel=selMode;

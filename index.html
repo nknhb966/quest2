@@ -2853,7 +2853,7 @@ addEventListener("mousemove",e=>{
     if(!GAME.desktop || !document.pointerLockElement) return;
     yaw   -= e.movementX*0.0022;
     pitch -= e.movementY*0.0022;
-    pitch = Math.max(-Math.PI/3, Math.min(Math.PI/9, pitch));   // 下45度・上20度
+    pitch = Math.max(-Math.PI/4, Math.min(Math.PI/9, pitch));   // 下45度・上20度
 });
 
 /* =====================================================

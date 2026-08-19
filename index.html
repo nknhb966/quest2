@@ -467,7 +467,8 @@ let   WORLD_Z       = 5;                 // 同 Z（m）
 let   SITE_X        = 5, SITE_Z = 5;     // サイトモデル表示時の幅×奥行（読み込み時に計測）
 let   fieldCX       = 0, fieldCZ = 0;     // カスタムワールドの中心
 let   fieldYaw      = 0;                  // フィールドの回転（プレイヤーの向きに合わせる）
-function customWorldOn(){ return !siteVisible; }   // サイト非表示＝カスタム矩形ワールド
+let _siteFailed=false;   // サイトGLBが取得できなかった
+function customWorldOn(){ return !siteVisible || _siteFailed; }   // サイト非表示 or 取得失敗＝カスタム矩形ワールド
 // フィールドの広さに応じたサイズ係数（20mで1.0、狭いと小さく、広いとやや大きく・上限1.6）
 function fieldScale(){ const sz = customWorldOn()? Math.min(WORLD_X,WORLD_Z) : Math.min(SITE_X,SITE_Z); return Math.max(3,Math.min(10,sz))/5; }
 // 恐竜用サイズ係数（3〜18mでクランプ）。サイト表示時もサイト寸法に合わせる
@@ -522,6 +523,7 @@ function regenerateCustomSpots(){
         spots.push(best);
     }
     GAME.customSpots=spots;
+    if(GAME.active && !GAME.starUsed && !GAME.standby && typeof spawnStarPoint==="function") spawnStarPoint();   // 広さ変更後もスターをフィールド内へ再配置
 }
 // リセット時：ワールド矩形＋発掘ポイントを3秒間オーラ表示（VR/AR/スマホ/PC共通）
 let worldAura=null, worldAuraT=0;
@@ -572,9 +574,9 @@ function updateFieldBorder(){
     if(!show){ if(fieldBorder) fieldBorder.visible=false; return; }
     if(!fieldBorder){
         fieldBorder=new THREE.Group();
-        for(const yoff of [0.05,0.14]){   // grip+Yのオーラと同じ二重線
-            const ln=new THREE.Line(new THREE.BufferGeometry(), new THREE.LineBasicMaterial({color:0x8ff0ff, transparent:true, opacity:1, depthTest:true}));
-            ln.userData.yoff=yoff; fieldBorder.add(ln);
+        for(const yoff of [0.05,0.6,1.2,1.8]){   // 地面〜目線上まで複数リング（どの向きでも見える）
+            const ln=new THREE.Line(new THREE.BufferGeometry(), new THREE.LineBasicMaterial({color:0x8ff0ff, transparent:true, opacity:0.9, depthTest:false}));
+            ln.userData.yoff=yoff; ln.renderOrder=998; fieldBorder.add(ln);
         }
         stage.add(fieldBorder);
     }
@@ -901,7 +903,7 @@ gltfLoader.load(SITE_GLB, (gltf)=>{
     rescaleSite();   // 倍率に応じてフィット
     siteReady=true; updateSiteVis();
     preloadEverything(()=>{ document.body.classList.remove("loading"); });   // 恐竜①②③を事前生成し終えてから開始可能に
-}, undefined, (e)=>{ console.warn("site load failed", e); siteReady=true; preloadEverything(()=>{ document.body.classList.remove("loading"); }); });
+}, undefined, (e)=>{ console.warn("site load failed", e); _siteFailed=true; siteVisible=false; if(typeof updateSiteVis==="function") updateSiteVis(); siteReady=true; preloadEverything(()=>{ document.body.classList.remove("loading"); }); });
 // サイトを siteMode の倍率でフィットし直し、発掘位置・フィールド半径・地面高さ・寸法を再計算
 function rescaleSite(){
     if(!siteRoot || !_sitePhs) return;
@@ -1529,11 +1531,11 @@ function showBuddyCardVR(k){
 function updateBuddyCardVR(){
     if(!_buddyCardVR || !_buddyCardVR.visible) return;                 // 自動では消さない（閉じるボタン/スタートまで表示）
     const q=camera.getWorldQuaternion(new THREE.Quaternion());
-    if(leftCtrl){   // 左手に追従（左手基準で右へ60cm・少し上）
+    if(leftCtrl){   // 左手に追従（左手基準で右へ40cm・上へ8cm）＝前回より左20cm下20cm
         const lo=leftCtrl.getWorldPosition(new THREE.Vector3());
         const fwd=new THREE.Vector3(0,0,-1).applyQuaternion(q);
         const right=new THREE.Vector3(1,0,0).applyQuaternion(q);
-        _buddyCardVR.position.copy(lo).addScaledVector(fwd,0.62).addScaledVector(right,0.4).add(new THREE.Vector3(0,0.28,0));
+        _buddyCardVR.position.copy(lo).addScaledVector(fwd,0.32).addScaledVector(right,0.4).add(new THREE.Vector3(0,0.08,0));
     } else {
         const cw=camera.getWorldPosition(new THREE.Vector3());
         const fwd=new THREE.Vector3(0,0,-1).applyQuaternion(q);
@@ -1546,7 +1548,7 @@ let _buddyRandomBtn=null;
 function makeBuddyRandomBtnTex(){
     const cv=document.createElement("canvas"); cv.width=256; cv.height=96; const g=cv.getContext("2d");
     g.fillStyle="#4a3d17"; g.fillRect(0,0,256,96); g.strokeStyle="#ffd86a"; g.lineWidth=6; g.strokeRect(3,3,250,90);
-    g.fillStyle="#fff"; g.font="bold 34px sans-serif"; g.textAlign="center"; g.textBaseline="middle"; g.fillText("🎁 ランダム",128,48);
+    g.fillStyle="#fff"; g.font="bold 34px sans-serif"; g.textAlign="center"; g.textBaseline="middle"; g.fillText("カードをひく",128,48);
     return new THREE.CanvasTexture(cv);
 }
 function updateBuddyRandomBtn(){
@@ -1555,10 +1557,11 @@ function updateBuddyRandomBtn(){
     if(!_buddyRandomBtn){ _buddyRandomBtn=new THREE.Mesh(new THREE.PlaneGeometry(0.3,0.1125), new THREE.MeshBasicMaterial({map:makeBuddyRandomBtnTex(),transparent:true,depthTest:true})); _buddyRandomBtn.renderOrder=1000; scene.add(_buddyRandomBtn); }   // 1.5倍
     _buddyRandomBtn.visible=true;
     const q=camera.getWorldQuaternion(new THREE.Quaternion());
-    if(leftCtrl){   // 左手図鑑の下側・やや手前（プレイヤー側）
+    if(leftCtrl){   // カードの真上（同X/Z・Yのみカード高さ分だけ上）
         const lo=leftCtrl.getWorldPosition(new THREE.Vector3());
-        const toP=camera.getWorldPosition(new THREE.Vector3()).sub(lo); toP.y=0; if(toP.lengthSq()>1e-4) toP.normalize();
-        _buddyRandomBtn.position.copy(lo).add(new THREE.Vector3(0,-0.12,0)).addScaledVector(toP,0.08);
+        const fwd=new THREE.Vector3(0,0,-1).applyQuaternion(q);
+        const right=new THREE.Vector3(1,0,0).applyQuaternion(q);
+        _buddyRandomBtn.position.copy(lo).addScaledVector(fwd,0.32).addScaledVector(right,0.4).add(new THREE.Vector3(0,0.08+0.49,0));   // カード中心+（カード半分0.4375＋ボタン半分0.056）
     } else {
         const cw=camera.getWorldPosition(new THREE.Vector3());
         const fwd=new THREE.Vector3(0,0,-1).applyQuaternion(q);

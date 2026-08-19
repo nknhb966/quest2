@@ -574,9 +574,10 @@ function updateFieldBorder(){
     if(!show){ if(fieldBorder) fieldBorder.visible=false; return; }
     if(!fieldBorder){
         fieldBorder=new THREE.Group();
-        for(const yoff of [0.05,0.6,1.2,1.8]){   // 地面〜目線上まで複数リング（どの向きでも見える）
-            const ln=new THREE.Line(new THREE.BufferGeometry(), new THREE.LineBasicMaterial({color:0x8ff0ff, transparent:true, opacity:0.9, depthTest:false}));
-            ln.userData.yoff=yoff; ln.renderOrder=998; fieldBorder.add(ln);
+        for(const yoff of [0.05,0.14]){   // 元の二重線（深度テスト有効）
+            const ln=new THREE.Line(new THREE.BufferGeometry(), new THREE.LineBasicMaterial({color:0x8ff0ff, transparent:true, opacity:1, depthTest:true}));
+            ln.userData.yoff=yoff; ln.frustumCulled=false;   // 視錐台カリングで一斉に消えるのを防止
+            fieldBorder.add(ln);
         }
         stage.add(fieldBorder);
     }
@@ -903,7 +904,10 @@ gltfLoader.load(SITE_GLB, (gltf)=>{
     rescaleSite();   // 倍率に応じてフィット
     siteReady=true; updateSiteVis();
     preloadEverything(()=>{ document.body.classList.remove("loading"); });   // 恐竜①②③を事前生成し終えてから開始可能に
-}, undefined, (e)=>{ console.warn("site load failed", e); _siteFailed=true; siteVisible=false; if(typeof updateSiteVis==="function") updateSiteVis(); siteReady=true; preloadEverything(()=>{ document.body.classList.remove("loading"); }); });
+}, undefined, (e)=>{ console.warn("site load failed", e); _siteFailed=true; siteVisible=false;
+    { const d=Math.max(3,Math.min(50,(siteMode||3)*10)); if(typeof setWorldX==="function"){ setWorldX(d); setWorldZ(d); } else { WORLD_X=d; WORLD_Z=d; } }   // 表示倍率×10mの矩形に
+    if(typeof updateSiteVis==="function") updateSiteVis(); if(typeof regenerateCustomSpots==="function") regenerateCustomSpots();
+    siteReady=true; preloadEverything(()=>{ document.body.classList.remove("loading"); }); });
 // サイトを siteMode の倍率でフィットし直し、発掘位置・フィールド半径・地面高さ・寸法を再計算
 function rescaleSite(){
     if(!siteRoot || !_sitePhs) return;
@@ -1434,7 +1438,7 @@ function updateBuddyStandbyUI(){
     el.innerHTML="";
     if(buddyRandom){
         const lab=document.createElement("div"); lab.textContent="相棒：ランダム"; lab.style.cssText="color:#e6c26a;font:bold 14px sans-serif;width:100%;text-align:center;margin-bottom:4px;"; el.appendChild(lab);
-        const bag=document.createElement("button"); bag.textContent="🎁 ふくろから出す";
+        const bag=document.createElement("button"); bag.textContent="🎁 カードをひく";
         bag.style.cssText="font:bold 14px sans-serif;padding:6px 14px;border-radius:10px;border:2px solid #ffd86a;background:#4a3d17;color:#fff;cursor:pointer;width:100%;";
         bag.onclick=()=>{ const k=drawRandomCompanion(); showCompanionCard(k, true); updateBuddyStandbyUI(); };
         el.appendChild(bag);
@@ -2308,9 +2312,8 @@ function askDog(){
     if(GAME.mode==="time"){ GAME.askCount=(GAME.askCount||0)+1; }   // 相棒に聞いた回数（減点用）
     let pos;
     if(reliable){ pos = t.pos.clone(); }
-    else { // はずれ：フィールド内の別地点
-        const a=Math.random()*Math.PI*2, r=THREE.MathUtils.lerp(3, Math.max(4,FIELD_R-1), Math.random());
-        pos = new THREE.Vector3(Math.cos(a)*r, 0, Math.sin(a)*r);
+    else { // はずれ：フィールド内の別地点（星と同じくフィールド範囲内に必ず収める）
+        pos = fieldRandomPoint();
     }
     dog.userData.hintPos = pos;
     dog.userData.hintReliable = reliable;
@@ -3097,6 +3100,23 @@ function doDig(t){
         else excavate(t);
     }
 }
+function fieldRange(){   // フィールドの有効範囲（端15%内側）。{custom, minX,maxX,minZ,maxZ}(site) or {hx,hz}(custom)
+    if(customWorldOn()){
+        const mgx=Math.max(1.0,WORLD_X*0.15), mgz=Math.max(1.0,WORLD_Z*0.15);
+        return { custom:true, hx:Math.max(0.4,WORLD_X/2-mgx), hz:Math.max(0.4,WORLD_Z/2-mgz) };
+    }
+    let minX=Infinity,maxX=-Infinity,minZ=Infinity,maxZ=-Infinity;
+    for(const s of (ARTPOS||[])){ if(!s)continue; minX=Math.min(minX,s.x);maxX=Math.max(maxX,s.x);minZ=Math.min(minZ,s.z);maxZ=Math.max(maxZ,s.z); }
+    if(!isFinite(minX)) return { custom:true, hx:3, hz:3 };
+    const mx=Math.max(1.0,(maxX-minX)*0.15), my=Math.max(1.0,(maxZ-minZ)*0.15);
+    if(maxX-minX>2*mx){ minX+=mx; maxX-=mx; } if(maxZ-minZ>2*my){ minZ+=my; maxZ-=my; }
+    return { custom:false, minX,maxX,minZ,maxZ };
+}
+function fieldRandomPoint(){   // 上の範囲内でランダム（必ずフィールド内）
+    const R=fieldRange();
+    if(R.custom){ const w=fieldToWorld((Math.random()*2-1)*R.hx,(Math.random()*2-1)*R.hz); return new THREE.Vector3(w.x,0,w.z); }
+    return new THREE.Vector3(R.minX+Math.random()*(R.maxX-R.minX), 0, R.minZ+Math.random()*(R.maxZ-R.minZ));
+}
 // ===== スターポイント（1プレイ1個・開始時から見える・崩すとSPECIAL） =====
 function makeStarSprite(){
     // 5角星の3Dモデル（押し出し）。深度テスト有効
@@ -3113,24 +3133,13 @@ function makeStarSprite(){
 }
 function starFieldPos(){
     const spots=(customWorldOn()&&GAME.customSpots)?GAME.customSpots:ARTPOS;
-    // サイト時のフィールド範囲＝発掘点(ARTPOS)の外接範囲
-    let minX=Infinity,maxX=-Infinity,minZ=Infinity,maxZ=-Infinity;
-    for(const s of (ARTPOS||[])){ if(!s)continue; minX=Math.min(minX,s.x);maxX=Math.max(maxX,s.x);minZ=Math.min(minZ,s.z);maxZ=Math.max(maxZ,s.z); }
-    const hasBox=isFinite(minX);
-    if(hasBox){ const mx=Math.max(1.0,(maxX-minX)*0.15), mz=Math.max(1.0,(maxZ-minZ)*0.15);   // 内側へ15%（最低1m）
-        if(maxX-minX>2*mx){ minX+=mx; maxX-=mx; } if(maxZ-minZ>2*mz){ minZ+=mz; maxZ-=mz; } }
     for(let k=0;k<120;k++){
-        let x,z;
-        if(customWorldOn()){ const mgx=Math.max(1.0,WORLD_X*0.15), mgz=Math.max(1.0,WORLD_Z*0.15); const hx=Math.max(0.4,WORLD_X/2-mgx), hz=Math.max(0.4,WORLD_Z/2-mgz); const w=fieldToWorld((Math.random()*2-1)*hx,(Math.random()*2-1)*hz); x=w.x; z=w.z; }
-        else if(hasBox){ x=minX+Math.random()*(maxX-minX); z=minZ+Math.random()*(maxZ-minZ); }   // サイト：発掘点範囲の内側
-        else { const R=Math.max(1.5,((FIELD_R||6)-2)*0.8), r=Math.sqrt(Math.random())*R, a=Math.random()*Math.PI*2; x=Math.cos(a)*r; z=Math.sin(a)*r; }
+        const p=fieldRandomPoint();
         let ok=true;
-        for(const s of (spots||[])){ if(s && Math.hypot(x-s.x,z-s.z)<2.0){ ok=false; break; } }   // 通常発掘点から2m以上
-        if(ok) return new THREE.Vector3(x, GROUND_Y, z);
+        for(const s of (spots||[])){ if(s && Math.hypot(p.x-s.x,p.z-s.z)<2.0){ ok=false; break; } }   // 通常発掘点から2m以上
+        if(ok){ p.y=GROUND_Y; return p; }
     }
-    // 見つからなければ発掘点の中点付近へ（必ずフィールド内）
-    if(hasBox) return new THREE.Vector3((minX+maxX)/2, GROUND_Y, (minZ+maxZ)/2);
-    return new THREE.Vector3(0, GROUND_Y, 0);
+    const p=fieldRandomPoint(); p.y=GROUND_Y; return p;   // 見つからなくても必ずフィールド内
 }
 function clearStarPoint(){ if(GAME.star){ if(GAME.star.block)stage.remove(GAME.star.block); if(GAME.star.star)stage.remove(GAME.star.star); GAME.star=null; } }
 function spawnStarPoint(){

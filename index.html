@@ -112,14 +112,14 @@
     @media(max-width:640px){ .dexgrid{ grid-template-columns:repeat(2,1fr); gap:10px; } }
     @media(max-width:380px){ .dexgrid{ grid-template-columns:1fr; } }
     /* トレカ風カード：縦横比 1:1.4、中央に 1:1 の画像、上にNo.・下に発掘日時 */
-    .dexcard{ position:relative; aspect-ratio:1/1.4; border-radius:14px; overflow:hidden; cursor:pointer;
+    .dexcard{ position:relative; aspect-ratio:1/1.5; border-radius:14px; overflow:hidden; cursor:pointer;
         display:flex; flex-direction:column; justify-content:space-between; align-items:center; padding:8px 8px;
         background:linear-gradient(160deg,#f4e8cc,#e0cfa6); border:2px solid var(--parch-line);
         box-shadow:0 4px 10px rgba(60,40,10,.22), inset 0 0 0 2px rgba(255,255,255,.35);
         transition:transform .08s ease; }
     .dexcard:active{ transform:scale(.97); }
     .dexcard .no{ position:static; text-align:center; font-size:12px; font-weight:800; color:#7a6532; letter-spacing:2px; }
-    .dexcard .art{ position:relative; width:100%; aspect-ratio:1/1; flex:0 0 auto;   /* 1:1の画像枠 */
+    .dexcard .art{ position:relative; width:100%; aspect-ratio:1/1.5; flex:1 1 auto;   /* カードPNG枠1:1.5 */
         border-radius:8px; overflow:hidden; background:rgba(255,255,255,.4); box-shadow:inset 0 0 0 1px rgba(150,120,60,.28); }
     .dexcard .art img{ position:absolute; inset:0; width:100%; height:100%; object-fit:contain; }
     .dexcard .art .q{ position:absolute; inset:0; display:flex; align-items:center; justify-content:center;
@@ -656,6 +656,19 @@ function companionCardPath(key){
     if(key==="dog") return cardImgPath("dino", 0);   // 犬用カードが別途あれば差し替え
     const i=(typeof DINOS!=="undefined") ? DINOS.findIndex(d=>d.key===key) : -1;
     return cardImgPath("dino", i>=0?i:0);
+}
+// カード画像/テクスチャのキャッシュ（獲得カード・図鑑で共用）
+const _cardImgCache={}, _cardTexCache={};
+function cardImage(target, idx, onload){
+    const key=target+"_"+idx;
+    if(!_cardImgCache[key]){ const im=new Image(); im.crossOrigin="anonymous"; if(onload) im.onload=onload; im.src=cardImgPath(target, idx); _cardImgCache[key]=im; }
+    else if(onload && _cardImgCache[key].complete) onload();
+    return _cardImgCache[key];
+}
+function cardTexture(target, idx){
+    const key=target+"_"+idx;
+    if(!_cardTexCache[key]){ _cardTexCache[key]=new THREE.TextureLoader().load(cardImgPath(target, idx)); }
+    return _cardTexCache[key];
 }
 const TIME_LIMIT = 100; // タイムアタック秒数
 
@@ -1650,25 +1663,17 @@ const dexPanel=(function(){
             const R=rectOf(p), x=R.x,y=R.y, e=dexData[i];
             if(e&&e.found){
                 ctx.fillStyle="#efe2c4"; roundRect(ctx,x,y,cw,chh,12); ctx.fill();
-                if(curTarget==="dino"){
-                    const dk=(typeof DINOS!=="undefined"&&DINOS[i])?DINOS[i].key:null;
-                    const cc=dk?COMPANIONS[dk]:null;
+                // 見た目＝対象のカードPNG（1:1.5・歪みなし）。読み込み後に再描画
+                const tg=(curTarget==="dino")?"dino":"artifact";
+                const cim=cardImage(tg, i, ()=>{ if(typeof dexPanel!=="undefined") dexPanel.draw(); });
+                if(cim&&cim.complete&&cim.naturalWidth){
+                    const s=Math.min(cw/cim.naturalWidth,(chh-4)/cim.naturalHeight), iw=cim.naturalWidth*s, ih=cim.naturalHeight*s;
+                    try{ ctx.drawImage(cim, x+(cw-iw)/2, y+(chh-ih)/2, iw, ih); }catch(_){}
+                } else if(curTarget==="dino"){
+                    const dk=(typeof DINOS!=="undefined"&&DINOS[i])?DINOS[i].key:null; const cc=dk?COMPANIONS[dk]:null;
                     ctx.textAlign="center"; ctx.textBaseline="middle";
                     ctx.fillStyle="#4a3a18"; ctx.font="bold 20px sans-serif"; ctx.fillText(curName(i), x+cw/2, y+26);
-                    if(cc){
-                        ctx.fillStyle="#a06a1e"; ctx.font="13px sans-serif"; ctx.fillText(cc.rarity||"", x+cw/2, y+48);
-                        const bar=v=>"★".repeat(v||0)+"☆".repeat(5-(v||0));
-                        ctx.textAlign="left"; ctx.fillStyle="#6e5a2e"; ctx.font="13px sans-serif";
-                        ctx.fillText("P "+bar(cc.power), x+10, y+chh-50);
-                        ctx.fillText("S "+bar(cc.scope), x+10, y+chh-32);
-                        ctx.fillText("B "+bar(cc.bonus), x+10, y+chh-14);
-                    } else {
-                        ctx.fillStyle="rgba(150,120,60,.5)"; ctx.font="bold 40px sans-serif"; ctx.fillText("🦖", x+cw/2, y+chh/2+8);
-                    }
-                } else {
-                    const im=imgs[i];
-                    if(im&&im.complete&&im.naturalWidth){ const s=Math.min(cw/im.naturalWidth,(chh-16)/im.naturalHeight), iw=im.naturalWidth*s, ih=im.naturalHeight*s;
-                        try{ ctx.drawImage(im, x+(cw-iw)/2, y+10+(chh-16-ih)/2, iw, ih); }catch(_){}}
+                    if(cc){ ctx.fillStyle="#a06a1e"; ctx.font="13px sans-serif"; ctx.fillText(cc.rarity||"", x+cw/2, y+48); }
                 }
             } else { ctx.fillStyle="rgba(42,32,60,0.92)"; roundRect(ctx,x,y,cw,chh,12); ctx.fill();
                 ctx.fillStyle="rgba(185,165,225,0.55)"; ctx.font="bold 64px sans-serif"; ctx.textAlign="center"; ctx.textBaseline="middle"; ctx.fillText("？", x+cw/2, y+chh/2); }
@@ -1779,8 +1784,8 @@ function cloneCont(src){
 function buildHologram(idx){
     closeHologram();
     const g=new THREE.Group();
-    const card=new THREE.Mesh(new THREE.PlaneGeometry(0.63,0.882),
-        new THREE.MeshBasicMaterial({map:makeTradingCardTex(idx), transparent:true, opacity:0.98, side:THREE.DoubleSide, toneMapped:false, depthTest:true, depthWrite:false}));
+    const card=new THREE.Mesh(new THREE.PlaneGeometry(0.6,0.9),
+        new THREE.MeshBasicMaterial({map:cardTexture((typeof GAME!=="undefined"&&GAME.digTarget)?GAME.digTarget:curTarget, idx), transparent:true, opacity:0.98, side:THREE.DoubleSide, toneMapped:false, depthTest:true, depthWrite:false}));
     card.position.set(-0.15,0.34,-0.2); g.add(card);   // 右＋上（見やすく・図鑑と重ならない）
     let dino=null, art=null;
     if(curTarget==="dino"){ try{
@@ -2364,11 +2369,12 @@ function refreshDexHTML(){
         const stamp=document.createElement("span"); stamp.className="stamp";
         if(e?.found){
             found++;
-            const u=curImgs()[i];
-            if(u){ const img=document.createElement("img"); img.src=u; img.alt="No."+(i+1); art.appendChild(img); }
-            else { const q=document.createElement("span"); q.className="q"; q.textContent=(curTarget==="dino"?"🦖":"？"); art.appendChild(q); }
+            const tg=(curTarget==="dino")?"dino":"artifact";
+            const img=document.createElement("img"); img.src=cardImgPath(tg,i); img.alt="No."+(i+1);
+            img.style.cssText="width:100%;height:100%;object-fit:contain;display:block;background:#2a2416";   // カードPNG（1:1.5）
+            art.appendChild(img);
             if(e.isNew){ const st=document.createElement("span"); st.className="newstamp"; st.textContent="NEW!"; card.appendChild(st); }
-            stamp.innerHTML = (curTarget==="dino") ? ('<b>'+curName(i)+'</b>') : "";   // 一覧は日時なし（トレカには残す）
+            stamp.innerHTML = "";   // 名称等はカードPNGに印字済み
         } else {
             const q=document.createElement("span"); q.className="q"; q.textContent="？"; art.appendChild(q);
             stamp.textContent="未発掘";
@@ -2605,8 +2611,10 @@ const worldHud=(function(){
                 ctx.fillStyle="#ffffff"; ctx.font="bold 70px sans-serif"; ctx.fillText(d.score+" pt",384,158);
                 if(d.calc&&d.calc.card){
                     ctx.fillStyle=RARITY_COL[d.calc.card.rarity]||"#fff"; ctx.font="bold 34px sans-serif";
-                    ctx.fillText("獲得カード："+(d.calc.card.rarity||""),384,222);
-                    try{ const t=makeTradingCardTex(d.calc.card.idx); ctx.drawImage(t.image, 234, 258, 300, 420); }catch(_){}
+                    ctx.fillText("獲得カード："+(d.calc.card.rarity||""),384,214);
+                    try{ const tg=(typeof GAME!=="undefined"&&GAME.digTarget)?GAME.digTarget:curTarget;
+                         const im=cardImage(tg, d.calc.card.idx, ()=>{ if(resData===d && resPage===0 && typeof worldHud!=="undefined") worldHud.renderResultPage(); });
+                         if(im.complete && im.naturalWidth) ctx.drawImage(im, 234, 244, 300, 450); }catch(_){}   // 1:1.5
                 }
             } else {
                 // ページB：全体スコア（計算式＋TOP5）

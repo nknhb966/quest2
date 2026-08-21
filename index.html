@@ -653,7 +653,7 @@ function cardImgPath(target, idx){         // target:"dino"/"artifact", idx:0始
 }
 // 相棒キー→カード番号（恐竜はDINOSのindex、犬は暫定でindex0）
 function companionCardPath(key){
-    if(key==="dog") return cardImgPath("dino", 0);   // 犬用カードが別途あれば差し替え
+    if(key==="dog") return CARD_DIR_DINO + "card00.png";   // 犬用カード
     const i=(typeof DINOS!=="undefined") ? DINOS.findIndex(d=>d.key===key) : -1;
     return cardImgPath("dino", i>=0?i:0);
 }
@@ -662,8 +662,7 @@ const _cardImgCache={}, _cardTexCache={};
 function cardImage(target, idx, onload){
     const key=target+"_"+idx;
     if(!_cardImgCache[key]){ const im=new Image(); im.crossOrigin="anonymous"; if(onload) im.onload=onload; im.src=cardImgPath(target, idx); _cardImgCache[key]=im; }
-    else if(onload && _cardImgCache[key].complete) onload();
-    return _cardImgCache[key];
+    return _cardImgCache[key];   // キャッシュ済みは同期onloadを呼ばない（再帰防止）。呼び出し側で .complete を見て描画
 }
 function cardTexture(target, idx){
     const key=target+"_"+idx;
@@ -2034,12 +2033,22 @@ function preloadEverything(done){
     for(let i=0;i<8;i++) jobs.push({smooth:false, idx:i, cache:_dinoCacheB});
     for(let i=0;i<8;i++) jobs.push({smooth:true,  idx:i, cache:_dinoCacheS});
     if(typeof COMPANION_ORDER!=="undefined") for(const k of COMPANION_ORDER){ jobs.push({companion:k, smooth:false}); jobs.push({companion:k, smooth:true}); }   // 相棒9種×両ボクセル版
+    // カード画像も事前読み込み（恐竜 card00〜card08／出土品 card01〜card08）
+    jobs.push({card:CARD_DIR_DINO+"card00.png"});
+    for(let i=0;i<8;i++){ jobs.push({card:cardImgPath("dino",i)}); jobs.push({card:cardImgPath("artifact",i)}); }
     let j=0;
     const step=()=>{
         _preloadTimer=null;
         while(j<jobs.length && jobs[j].cache && jobs[j].cache[jobs[j].idx]) j++;
         if(j>=jobs.length){ if(done) done(); return; }
         const job=jobs[j];
+        if(job.card){   // カード画像プリロード（読み込み完了/失敗で次へ）
+            const im=new Image(); im.crossOrigin="anonymous";
+            const nxt=()=>{ j++; _preloadTimer=setTimeout(step,10); };
+            im.onload=nxt; im.onerror=nxt; im.src=job.card;
+            _cardImgCache[job.card]=im;   // 併せてキャッシュ
+            return;
+        }
         if(job.companion){ try{ if(typeof preloadCompanionBody==="function") preloadCompanionBody(job.companion, job.smooth); }catch(_){}; j++; _preloadTimer=setTimeout(step,25); return; }
         const prev=dinoSmooth; dinoSmooth=job.smooth;
         try{ const m=makeDigDino(DINOS[job.idx]); m.visible=false; stage.add(m); job.cache[job.idx]=m; }catch(_){}

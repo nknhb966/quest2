@@ -642,6 +642,21 @@ const ART_IMGS   = ["40100","40200","40300","40400","40500","40600","40700","408
 // 恐竜の説明パネル画像（8種）。※パスは後で共有される予定。空文字のあいだはプレースホルダー表示。
 //   順番は DINOS と同じ：0ティラノ 1フクイラプトル 2フクイティタン 3トリケラ 4プテラノ 5フクイサウルス 6ステゴ 7ブラキオ
 const DINO_IMGS  = ["", "", "", "", "", "", "", ""];
+// ===== カードPNG（1:1.5）の共通パス取得 =====
+// ※実際のフォルダ名に合わせて調整してください（index.htmlと同階層）
+const CARD_DIR_DINO = "card_dino/";        // 恐竜用カード画像フォルダ
+const CARD_DIR_ART  = "card_artifact/";    // 出土品用カード画像フォルダ
+function cardImgPath(target, idx){         // target:"dino"/"artifact", idx:0始まり → cardXX.png
+    const dir = (target==="dino") ? CARD_DIR_DINO : CARD_DIR_ART;
+    const n = String((idx|0)+1).padStart(2,"0");
+    return dir + "card" + n + ".png";
+}
+// 相棒キー→カード番号（恐竜はDINOSのindex、犬は暫定でindex0）
+function companionCardPath(key){
+    if(key==="dog") return cardImgPath("dino", 0);   // 犬用カードが別途あれば差し替え
+    const i=(typeof DINOS!=="undefined") ? DINOS.findIndex(d=>d.key===key) : -1;
+    return cardImgPath("dino", i>=0?i:0);
+}
 const TIME_LIMIT = 100; // タイムアタック秒数
 
 /* =====================================================
@@ -1478,24 +1493,12 @@ function showCompanionCard(k, bag){
     const c=COMPANIONS[k]; if(!c) return;
     let el=document.getElementById("buddyCard");
     if(!el){ el=document.createElement("div"); el.id="buddyCard";
-        el.style.cssText="position:fixed;left:50%;top:46%;transform:translate(-50%,-50%);z-index:9997;width:336px;max-width:90vw;background:linear-gradient(160deg,#2a2416,#3a2f16);border:3px solid #e6c26a;border-radius:16px;box-shadow:0 10px 40px rgba(0,0,0,0.5);color:#fdf3d5;padding:18px 20px;font-family:sans-serif;text-align:center;opacity:0;transition:opacity 0.2s;pointer-events:none;";
+        el.style.cssText="position:fixed;left:50%;top:46%;transform:translate(-50%,-50%);z-index:9997;display:flex;flex-direction:column;align-items:center;opacity:0;transition:opacity 0.2s;pointer-events:none;";
         document.body.appendChild(el); }
-    const sp=c.special||{};
-    const bar=v=>"\u2605".repeat(v||0)+"\u2606".repeat(5-(v||0));
-    const RSTAR={"超激レア":5,"激レア":4,"レア":3,"プチレア":2,"ノーマル":1,"パートナー":5};
-    const total=(c.power||0)+(c.scope||0)+(c.bonus||0);
-    const rng=(b,mx)=>Math.max(1,b-1)+"\u301c"+Math.min(mx,b+1);
-    const specialLine=(k==="dog")?("\u672a\u767a\u898b\u3092\u767a\u898b\uff1a"+rng(sp.discN,6)+"\u30ab\u6240")
-        :("\u767a\u898b "+sp.discP+"% / "+rng(sp.discN,6)+"\u30ab\u6240\u3000\u767a\u6398 "+(100-sp.discP)+"% / "+rng(sp.digN,4)+"\u30ab\u6240");
-    el.innerHTML='<div style="font-size:24px;font-weight:bold;margin-bottom:2px">'+((c.label||k).split(" ")[0]+' '+(c.fullName||c.label||k))+'</div>'
-      +'<div style="font-size:14px;color:#ffd86a;margin-bottom:6px;font-weight:bold">'+(c.rarity||"")+'カード '+bar(RSTAR[c.rarity]||1)+'</div>'
-      +'<div style="text-align:left;font-size:11px;color:#cdbf94;line-height:1.6;margin-bottom:6px">\u5206\u985e\uff1a'+(c.cat||"-")+'\u3000\u98df\u6027\uff1a'+(c.diet||"-")+'<br>\u6642\u4ee3\uff1a'+(c.era||"-")+'\u3000\u5730\u57df\uff1a'+(c.region||"-")+'</div>'
-      +'<div style="text-align:left;font-size:15px;line-height:1.75">POWER\uff08\u6398\u308b\u529b\uff09\uff1a'+bar(c.power)+'<br>SCOPE\uff08\u767a\u898b\u8ddd\u96e2\uff09\uff1a'+bar(c.scope)+'<br>BONUS\uff08\u6491\u3067\u52b9\u679c\uff09\uff1a'+bar(c.bonus)+'<span style="float:right;color:#e6c26a">\u5408\u8a08 '+total+'</span></div>'
-      +'<div style="margin-top:8px;font-size:13px;color:#ffd86a">SPECIAL\u300c'+(sp.name||"-")+'\u300d</div>'
-      +'<div style="font-size:11px;color:#cdbf94">'+specialLine+'</div>'
-      +'<div style="margin-top:6px;font-size:11px;color:#cdbf94;text-align:left">'+(c.dinoFeat||"")+'</div>'+'<div style="margin-top:4px;font-size:11px;color:#bfb488;text-align:left">'+(c.feature||"")+'</div>'
-      +'<div style="margin-top:6px;font-size:12px;white-space:pre-line;border-top:1px solid #6b5a2e;padding-top:6px">'+(c.cardText||"")+'</div>'
-      +'<button id="buddyCardClose" style="margin-top:10px;font:bold 13px sans-serif;padding:6px 18px;border-radius:10px;border:2px solid #e6c26a;background:#4a3d17;color:#fff;cursor:pointer;pointer-events:auto;">閉じる</button>';
+    // 見た目＝カードPNG（1:1.5）。操作（閉じる）はHTML側で維持
+    const w=260;
+    el.innerHTML='<img src="'+companionCardPath(k)+'" alt="'+((c.fullName)||k)+'" style="width:'+w+'px;max-width:80vw;height:auto;aspect-ratio:1/1.5;object-fit:contain;border-radius:12px;box-shadow:0 10px 40px rgba(0,0,0,0.5);pointer-events:none;background:#2a2416;" onerror="this.style.background=\'#2a2416\';this.alt=(this.alt||\'\')">'
+      +'<button id="buddyCardClose" style="margin-top:10px;font:bold 14px sans-serif;padding:8px 22px;border-radius:10px;border:2px solid #e6c26a;background:#4a3d17;color:#fff;cursor:pointer;pointer-events:auto;">閉じる</button>';
     el.style.pointerEvents="auto";
     { const cb=el.querySelector("#buddyCardClose"); if(cb) cb.onclick=()=>{ el.style.opacity="0"; el.style.pointerEvents="none"; }; }
     el.style.opacity="1";
@@ -1508,33 +1511,11 @@ function showCompanionCard(k, bag){
 let _buddyCardVR=null, _buddyCardVRHide=0;
 function showBuddyCardVR(k){
     const c=COMPANIONS[k]; if(!c || typeof scene==="undefined") return;
-    const cv=document.createElement("canvas"); cv.width=512; cv.height=820; const g=cv.getContext("2d");
-    g.fillStyle="#241f13"; g.fillRect(0,0,512,820); g.strokeStyle="#e6c26a"; g.lineWidth=12; g.strokeRect(8,8,496,804);
-    g.textAlign="center"; g.fillStyle="#fdf3d5"; g.font="bold 40px sans-serif"; g.fillText((c.label||k).split(" ")[0]+" "+(c.fullName||c.label||k),256,74);
-    { const RST={"超激レア":5,"激レア":4,"レア":3,"プチレア":2,"ノーマル":1}; const lv=RST[c.rarity]||1;
-      g.fillStyle="#ffd86a"; g.font="bold 26px sans-serif"; g.fillText((c.rarity||"")+"カード "+"★".repeat(lv)+"☆".repeat(5-lv),256,116); }
-    g.fillStyle="#cdbf94"; g.font="22px sans-serif";
-    g.fillText("分類："+(c.cat||"-")+"　食性："+(c.diet||"-"),256,156);
-    g.fillText("時代："+(c.era||"-")+"　地域："+(c.region||"-"),256,188);
-    const bar=v=>"★".repeat(v||0)+"☆".repeat(5-(v||0));
-    g.textAlign="left"; g.fillStyle="#fdf3d5"; g.font="30px sans-serif";
-    g.fillText("POWER "+bar(c.power),36,250); g.fillText("SCOPE "+bar(c.scope),36,296); g.fillText("BONUS "+bar(c.bonus),36,342);
-    const total=(c.power||0)+(c.scope||0)+(c.bonus||0);
-    g.textAlign="right"; g.fillStyle="#e6c26a"; g.font="26px sans-serif"; g.fillText("合計 "+total,476,250);
-    const sp=c.special||{};
-    g.textAlign="left"; g.fillStyle="#ffd86a"; g.font="26px sans-serif"; g.fillText("SPECIAL「"+(sp.name||"-")+"」",36,404);
-    g.fillStyle="#cdbf94"; g.font="20px sans-serif";
-    { const rng=(b,mx)=>Math.max(1,b-1)+"〜"+Math.min(mx,b+1);
-    g.fillText(k==="dog"?("未発見を発見："+rng(sp.discN,6)+"カ所"):("発見 "+sp.discP+"% /"+rng(sp.discN,6)+"　発掘 "+(100-sp.discP)+"% /"+rng(sp.digN,4)),36,436); }
-    const wrap=(txt,x,y,max,lh)=>{ const cs=(txt||"").split("\n"); let yy=y; for(const ln of cs){ let cur=""; for(const ch of ln){ if(g.measureText(cur+ch).width>max){ g.fillText(cur,x,yy); yy+=lh; cur=ch; } else cur+=ch; } g.fillText(cur,x,yy); yy+=lh; } return yy; };
-    g.fillStyle="#cdbf94"; g.font="18px sans-serif"; let yy=wrap(c.dinoFeat,36,478,440,24);
-    g.fillStyle="#bfb488"; g.font="18px sans-serif"; yy=wrap(c.feature,36,yy+6,440,24);
-    g.fillStyle="#fdf3d5"; g.font="21px sans-serif"; const yy2=wrap(c.cardText,36,yy+12,440,28);
-    g.fillStyle="#4a3d17"; g.fillRect(146,716,220,48); g.strokeStyle="#e6c26a"; g.lineWidth=3; g.strokeRect(146,716,220,48);
-    g.fillStyle="#fff"; g.font="bold 24px sans-serif"; g.textAlign="center"; g.fillText("閉じる",256,740);
-    const tex=new THREE.CanvasTexture(cv);
-    if(!_buddyCardVR){ _buddyCardVR=new THREE.Mesh(new THREE.PlaneGeometry(0.51,0.875), new THREE.MeshBasicMaterial({map:tex,transparent:true,depthTest:true})); _buddyCardVR.renderOrder=1000; scene.add(_buddyCardVR); }
-    else { if(_buddyCardVR.material.map) _buddyCardVR.material.map.dispose(); _buddyCardVR.material.map=tex; _buddyCardVR.material.depthTest=true; }
+    // 見た目＝カードPNG（1:1.5）。閉じる操作は右手レイ（onRightPressEdge）で維持
+    const url=companionCardPath(k);
+    const tex=new THREE.TextureLoader().load(url);
+    if(!_buddyCardVR){ _buddyCardVR=new THREE.Mesh(new THREE.PlaneGeometry(0.5,0.75), new THREE.MeshBasicMaterial({map:tex,transparent:true,depthTest:true})); _buddyCardVR.renderOrder=1000; scene.add(_buddyCardVR); }
+    else { if(_buddyCardVR.material.map) _buddyCardVR.material.map.dispose(); _buddyCardVR.material.map=tex; _buddyCardVR.material.needsUpdate=true; }
     _buddyCardVR.visible=true;   // 閉じる/スタートまで表示
 }
 function updateBuddyCardVR(){

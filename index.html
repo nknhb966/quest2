@@ -2612,6 +2612,7 @@ const worldHud=(function(){
     const cv=document.createElement("canvas"); cv.width=768; cv.height=1040;
     const ctx=cv.getContext("2d");
     const tex=new THREE.CanvasTexture(cv);
+    try{ tex.colorSpace = THREE.SRGBColorSpace; }catch(_){ try{ tex.encoding = THREE.sRGBEncoding; }catch(__){} }   // カード色の退色を防ぐ
     const mat=new THREE.MeshBasicMaterial({map:tex, transparent:true, depthTest:true, toneMapped:false});
     const mesh=new THREE.Mesh(new THREE.PlaneGeometry(1.3,1.76), mat);
     mesh.visible=false; scene.add(mesh);   // 高さ調整(stage)とは切り離し、常に目線基準
@@ -2719,7 +2720,7 @@ const worldHud=(function(){
 // カメラ正面に保持（移動・首振りに追従）
 function updateWorldHud(){
     if(!worldHud.mesh.visible) return;
-    worldHud.mesh.scale.set(1, renderer.xr.isPresenting?1.18:1.0, 1);   // VR/ARはさらに縦に（上側に）拡大
+    worldHud.mesh.scale.set(1,1,1);   // 歪み防止（キャンバス比＝メッシュ比を維持）
     const cam=camera.getWorldPosition(new THREE.Vector3());
     const camQ=camera.getWorldQuaternion(new THREE.Quaternion());
     const dir=new THREE.Vector3(0,0,-1).applyQuaternion(camQ);

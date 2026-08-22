@@ -532,7 +532,7 @@ function regenerateCustomSpots(){
         spots.push(best);
     }
     GAME.customSpots=spots;
-    if(GAME.active && !GAME.starUsed && !GAME.standby && typeof spawnStarPoint==="function") spawnStarPoint();   // 広さ変更後もスターをフィールド内へ再配置
+    if(GAME.active && TA.state==="run" && !GAME.starUsed && typeof planStarPosition==="function"){ planStarPosition(); spawnStarPoint(); }   // ③中の広さ変更時のみ、フィールド内へ再配置
 }
 // リセット時：ワールド矩形＋発掘ポイントを3秒間オーラ表示（VR/AR/スマホ/PC共通）
 let worldAura=null, worldAuraT=0;
@@ -3416,7 +3416,7 @@ function petDog(){
     else if(kind===1){ chord([523,784],0.07,"triangle",0.45); showToast("ラッキー！確率アップ"); }
     else sfxBark();
     // セリフ（前回と同じなら言わず、動作だけ）
-    const digable = (GAME.mode==="collect" && GAME.collectedCount<8) || (GAME.mode==="time" && TA.state==="run");
+    const digable = TA.state==="run" && ((GAME.mode==="collect" && GAME.collectedCount<8) || (GAME.mode==="time"));   // ③プレイ中のみ
     let petLine;
     const pl=line("pet");
     if(!digable){ petLine=pl+"\nなでなで だいすき"; }
@@ -3807,8 +3807,10 @@ function onRightPressEdge(){
     const now=performance.now();
     if(now-lastRightPress<400){ lastRightPress=0; if(GAME._resToggleTimer){ clearTimeout(GAME._resToggleTimer); GAME._resToggleTimer=null; } onRightDouble(); }   // 2回連続
     else { lastRightPress=now;
-        if(GAME.mode==="time" && TA.state==="results"){   // 結果中：単押しでページ切替（2回でパネルを消す）
+        if(GAME.mode==="time" && TA.state==="results"){   // TA結果：単押しでページ切替（2回でスタンバイ）
             GAME._resToggleTimer=setTimeout(()=>{ GAME._resToggleTimer=null; worldHud.toggleResultsPage(); }, 420);
+        } else if(GAME.mode!=="time" && GAME.complete){   // コレ結果：単押しでタイム/TOP5切替（2回でスタンバイ）
+            GAME._resToggleTimer=setTimeout(()=>{ GAME._resToggleTimer=null; worldHud.toggleCollectPage(); }, 420);
         }
     }
 }

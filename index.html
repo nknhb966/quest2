@@ -2386,13 +2386,17 @@ const dexGrid=document.getElementById("dexGrid");
 const dexView=document.getElementById("dexView"), dexViewCard=document.getElementById("dexViewCard");
 function openDexView(i){
     const e=dexData[i], found=e&&e.found;
-    dexViewCard.className="dexview-card"+(found?"":" locked");
     const tg=(curTarget==="dino")?"dino":"artifact";
-    const art = found ? '<div class="art" style="aspect-ratio:1/1.5"><img src="'+cardImgPath(tg,i)+'" alt="No.'+(i+1)+'" style="width:100%;height:100%;object-fit:contain;background:#2a2416"></div>'
-                      : '<div class="art" style="aspect-ratio:1/1.5"><span class="q">？</span></div>';
-    const meta = found ? '<div class="meta">'+(curTarget==="dino"? '<b>'+curName(i)+'</b><br>' : '')+'発掘済み<br>'+((e.date||"")+(e.time? " "+e.time : ""))+'</div>'
-                       : '<div class="meta">未発掘</div>';
-    dexViewCard.innerHTML='<div class="no">No.'+String(i+1).padStart(2,"0")+'</div>'+art+meta;
+    if(found){
+        // 相棒カードと同じ大きさ・見た目でカードPNGを表示
+        dexViewCard.className="dexview-cardimg";
+        dexViewCard.style.cssText="display:flex;flex-direction:column;align-items:center;gap:14px;background:none;border:none;box-shadow:none;padding:0;width:auto;height:auto;aspect-ratio:auto;";
+        dexViewCard.innerHTML='<img src="'+cardImgPath(tg,i)+'" alt="No.'+(i+1)+'" style="height:70vh;max-height:70vh;max-width:88vw;aspect-ratio:1/1.5;object-fit:contain;border-radius:14px;box-shadow:0 14px 50px rgba(0,0,0,0.6);background:#2a2416;" onerror="this.style.background=\'#2a2416\'">';
+    } else {
+        dexViewCard.className="dexview-card locked";
+        dexViewCard.style.cssText="";
+        dexViewCard.innerHTML='<div class="no">No.'+String(i+1).padStart(2,"0")+'</div><div class="art" style="aspect-ratio:1/1.5"><span class="q">？</span></div><div class="meta">未発掘</div>';
+    }
     dexView.classList.add("open");
 }
 function closeDexView(){ dexView.classList.remove("open"); }
@@ -2737,8 +2741,8 @@ const worldHud=(function(){
                     ctx.textAlign="right"; ctx.font="bold 23px sans-serif"; ctx.fillText(e?((e.date||"")+(e.time?" "+e.time:"")):"",680,yy);
                 }
             }
-            if(!GAME.desktop){ ctx.fillStyle="rgba(210,200,245,.8)"; ctx.font="bold 27px sans-serif"; ctx.textAlign="center"; ctx.textBaseline="middle";
-                ctx.fillText("右トリガー1回で切替 / 2回でスタンバイ", 384, 1360); }
+            ctx.fillStyle="rgba(226,216,255,.85)"; ctx.font="bold 26px sans-serif"; ctx.textAlign="center"; ctx.textBaseline="middle";
+            ctx.fillText(GAME.desktop ? "「スタンバイに戻る」で①へ" : "右トリガー2回でスタンバイに戻る", 384, 1400);
             tex.needsUpdate=true; mesh.visible=true;
         }
     };
@@ -2746,19 +2750,28 @@ const worldHud=(function(){
 // カメラ正面に保持（移動・首振りに追従）
 function updateWorldHud(){
     if(!worldHud.mesh.visible) return;
-    worldHud.mesh.scale.set(1,1,1);   // 歪み防止（キャンバス比＝メッシュ比を維持）
     const cam=camera.getWorldPosition(new THREE.Vector3());
     const camQ=camera.getWorldQuaternion(new THREE.Quaternion());
     const dir=new THREE.Vector3(0,0,-1).applyQuaternion(camQ);
     const up=new THREE.Vector3(0,1,0).applyQuaternion(camQ);
-    // PC/スマホの④リザルトは画面の約75%・上詰め（近づけて上へ）。②カウントダウンは正方形パネルを中央通常表示
     const ph=(typeof gamePhase==="function")?gamePhase():"";
     const panelPhase=(ph==="result");
-    const dist = (!renderer.xr.isPresenting && panelPhase) ? 2.6 : 2.2;   // リザルトはやや近づけて大きく（TA/コレ共通）
-    const upOff = (!renderer.xr.isPresenting && panelPhase) ? 0.45 : 0.0;   // 上詰め
-    const p=cam.clone().addScaledVector(dir, dist).addScaledVector(up, upOff);
-    if(panelPhase) worldHud.mesh.position.copy(p);   // リザルトは即確定（TA/コレで同じ向き・位置）
-    else worldHud.mesh.position.lerp(p, 0.18);
+    if(!renderer.xr.isPresenting && panelPhase){
+        // ④リザルト：画面高さの75%に合わせて上詰め（やや余白）
+        const dist=2.2;
+        const meshH=2.47;                                   // メッシュ本来の高さ
+        const visH=2*dist*Math.tan(THREE.MathUtils.degToRad(camera.fov)/2);  // その距離で画面いっぱいの高さ
+        const targetH=visH*0.75;                            // 画面の75%
+        const s=targetH/meshH; worldHud.mesh.scale.set(s,s,1);
+        const topMargin=visH*0.04;                          // 上の余白
+        const upOff = visH/2 - topMargin - targetH/2;       // 上詰め
+        const p=cam.clone().addScaledVector(dir, dist).addScaledVector(up, upOff);
+        worldHud.mesh.position.copy(p); worldHud.mesh.lookAt(cam);
+        return;
+    }
+    worldHud.mesh.scale.set(1,1,1);
+    const p=cam.clone().addScaledVector(dir, 2.2);
+    worldHud.mesh.position.lerp(p, 0.18);
     worldHud.mesh.lookAt(cam);
 }
 
@@ -2841,6 +2854,7 @@ function taFinish(){
     sfxTimeUp();
     const found=dexFoundCount();
     const card=acquireCard(score); GAME.lastCard=card;                    // スコアに応じてカード獲得
+    { const tg=(GAME.digTarget)?GAME.digTarget:curTarget; cardImage(tg, card.idx, ()=>{ if(TA.state==="results") worldHud.renderResultPage(); }); }
     worldHud.drawResults(score, found, loadTA(), {digPts, secs, timeBonus, asks, askPenalty, card});   // 2ページ（ポイント+カード/全体スコア）
     if(typeof updateResultBtn==="function") updateResultBtn();
     bubble.say(found>=8 ? line("done") : line("again"), 4000);
@@ -2864,6 +2878,7 @@ function collectionFinish(){   // ④コレクションのクリア（全8種）
     const rar = collectRarityByTime(sec);
     const card = { idx:(pickCardIdxByRarity? pickCardIdxByRarity(rar) : 0), rarity:rar };
     GAME.lastCard = card;
+    { const tg=(curTarget==="dino")?"dino":"artifact"; cardImage(tg, card.idx, ()=>{ if(GAME.complete) worldHud.renderCollectPage(); }); }
     if(typeof worldHud!=="undefined" && worldHud.drawCollectResult) worldHud.drawCollectResult(GAME.lastColTime, loadCol(), card);
     updateGoal(); updateTAButton();
 }
@@ -2922,7 +2937,7 @@ function updateHudButtons(){
     // ①②：リセット・記録・やめる のみ／④：聞いてみる・リセット・図鑑・記録・やめる／③：従来どおり
     set("dAsk",  ph==="result" || ph==="play");
     set("dTool", ph==="play");        // 道具は③プレイのみ（①②④は非表示）
-    set("dDex",  ph==="result" || ph==="play");
+    set("dDex",  ph!=="count");        // 図鑑は①③④で表示（②カウントダウンのみ非表示）
     set("dShowAll", ph==="play");     // 全て発掘は③プレイのみ（④リザルトでは非表示）
     set("dReset", true); set("dRecords", true); set("dQuit", true);
 }

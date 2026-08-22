@@ -2633,14 +2633,24 @@ const worldHud=(function(){
         mesh,
         show(){ mesh.visible=true; }, hide(){ mesh.visible=false; },
         drawCountdown(text, sub, short){
-            ctx.clearRect(0,0,768,864);
-            const top = short? 300 : 24, bh = short? 452 : 1412;   // shortは高さ約2/3
+            ctx.clearRect(0,0,768,1460);
+            if(!short){   // ②カウントダウン：正方形パネル（中央）。キャンバスのピクセルは正方形なので720×720で正方形に見える
+                const sq=720, x0=24, y0=(1460-sq)/2;
+                ctx.fillStyle="rgba(10,7,26,0.90)"; rr(x0,y0,sq,sq,40); ctx.fill();
+                ctx.strokeStyle="#d8b46a"; ctx.lineWidth=6; ctx.stroke();
+                ctx.textAlign="center"; ctx.textBaseline="middle";
+                ctx.fillStyle="#f0d98a"; ctx.font="bold 300px sans-serif"; ctx.fillText(text, x0+sq/2, y0+sq*0.42);
+                if(sub){ ctx.fillStyle="rgba(226,216,255,.85)"; ctx.font="bold 40px sans-serif";
+                    const lines=String(sub).split("\n"); lines.forEach((ln,i)=>ctx.fillText(ln, x0+sq/2, y0+sq*0.78+i*52)); }
+                tex.needsUpdate=true; mesh.visible=true; return;
+            }
+            const top = 300, bh = 452;   // ①スタンバイ案内（short）
             ctx.fillStyle="rgba(10,7,26,0.90)"; rr(24,top,720,bh,40); ctx.fill();
             ctx.strokeStyle="#d8b46a"; ctx.lineWidth=6; ctx.stroke();
             ctx.textAlign="center"; ctx.textBaseline="middle";
-            ctx.fillStyle="#f0d98a"; ctx.font="bold "+(short?170:300)+"px sans-serif"; ctx.fillText(text,384, top+(short?150:386));
+            ctx.fillStyle="#f0d98a"; ctx.font="bold 170px sans-serif"; ctx.fillText(text,384, top+150);
             if(sub){ ctx.fillStyle="rgba(226,216,255,.85)"; ctx.font="bold 40px sans-serif";
-                const lines=String(sub).split("\n"), sy=top+(short?300:646), lh=52;
+                const lines=String(sub).split("\n"), sy=top+300, lh=52;
                 lines.forEach((ln,i)=>ctx.fillText(ln,384,sy+i*lh)); }
             tex.needsUpdate=true; mesh.visible=true;
         },
@@ -2741,9 +2751,9 @@ function updateWorldHud(){
     const camQ=camera.getWorldQuaternion(new THREE.Quaternion());
     const dir=new THREE.Vector3(0,0,-1).applyQuaternion(camQ);
     const up=new THREE.Vector3(0,1,0).applyQuaternion(camQ);
-    // PC/スマホの②カウントダウン・④リザルトは画面の約75%・上詰め（近づけて上へ）
+    // PC/スマホの④リザルトは画面の約75%・上詰め（近づけて上へ）。②カウントダウンは正方形パネルを中央通常表示
     const ph=(typeof gamePhase==="function")?gamePhase():"";
-    const panelPhase=(ph==="count"||ph==="result");
+    const panelPhase=(ph==="result");
     const dist = (!renderer.xr.isPresenting && panelPhase) ? 3.55 : 2.2;   // 遠いほど小さく＝約75%高さ
     const upOff = (!renderer.xr.isPresenting && panelPhase) ? 0.62 : 0.0;   // 上詰め
     const p=cam.clone().addScaledVector(dir, dist).addScaledVector(up, upOff);
@@ -2910,9 +2920,9 @@ function updateHudButtons(){
     const set=(id,show)=>{ const e=document.getElementById(id); if(e && e.id!=="dTA" && e.id!=="taCardBtn") e.style.display = show ? "" : "none"; };
     // ①②：リセット・記録・やめる のみ／④：聞いてみる・リセット・図鑑・記録・やめる／③：従来どおり
     set("dAsk",  ph==="result" || ph==="play");
-    set("dTool", ph==="play");
+    set("dTool", ph==="play");        // 道具は③プレイのみ（①②④は非表示）
     set("dDex",  ph==="result" || ph==="play");
-    set("dShowAll", ph==="play");
+    set("dShowAll", ph==="play");     // 全て発掘は③プレイのみ（④リザルトでは非表示）
     set("dReset", true); set("dRecords", true); set("dQuit", true);
 }
 function updateGoal(){

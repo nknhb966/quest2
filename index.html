@@ -28,6 +28,8 @@
     }
     /* 読み込み中はゲーム開始を無効化（背景のシーンは見える） */
     body.loading #vrbtnwrap, body.loading #startDesktop{ opacity:.45; pointer-events:none; filter:grayscale(.4); }
+    body.loading button, body.loading #dhud, body.loading #buddyStandby, body.loading #joystick, body.loading #help, body.loading #taModal{ pointer-events:none !important; }
+    body.loading #dhud, body.loading #buddyStandby{ opacity:.5; }
     #loadingNote{ display:none; margin:0 0 14px; font-size:13px; letter-spacing:1px; color:#c9bcff; text-align:center; }
     body.loading #loadingNote{ display:block; }
     #loadingNote i{ display:inline-block; width:13px; height:13px; margin-right:8px; vertical-align:-2px;
@@ -672,8 +674,13 @@ function companionCardPath(key){
 const _cardImgCache={}, _cardTexCache={};
 function cardImage(target, idx, onload){
     const key=target+"_"+idx;
-    if(!_cardImgCache[key]){ const im=new Image(); im.crossOrigin="anonymous"; if(onload) im.onload=onload; im.src=cardImgPath(target, idx); _cardImgCache[key]=im; }
-    return _cardImgCache[key];   // キャッシュ済みは同期onloadを呼ばない（再帰防止）。呼び出し側で .complete を見て描画
+    let im=_cardImgCache[key];
+    if(!im){ im=new Image(); im.crossOrigin="anonymous"; im.src=cardImgPath(target, idx); _cardImgCache[key]=im; }
+    if(onload && !(im.complete && im.naturalWidth) && !im._redrawHooked){   // まだ読み込めていなければ、読み込み後に一度だけ再描画
+        im._redrawHooked=true;
+        im.addEventListener("load", ()=>{ im._redrawHooked=false; try{ onload(); }catch(_){}}, {once:true});
+    }
+    return im;   // キャッシュ済み(complete)は呼び出し側が .complete を見て描画
 }
 function cardTexture(target, idx){
     const key=target+"_"+idx;
@@ -2609,26 +2616,26 @@ const COUNTDOWN_MS=3000;
 let resData=null, resPage=0;   // タイムアタック結果：データと表示ページ（0=ポイント+カード / 1=全体スコア）
 let colData=null, colPage=0;   // コレクション結果：データと表示ページ（0=タイム+カード / 1=TOP5）
 const worldHud=(function(){
-    const cv=document.createElement("canvas"); cv.width=768; cv.height=1040;
+    const cv=document.createElement("canvas"); cv.width=768; cv.height=1460;
     const ctx=cv.getContext("2d");
     const tex=new THREE.CanvasTexture(cv);
     try{ tex.colorSpace = THREE.SRGBColorSpace; }catch(_){ try{ tex.encoding = THREE.sRGBEncoding; }catch(__){} }   // カード色の退色を防ぐ
     const mat=new THREE.MeshBasicMaterial({map:tex, transparent:true, depthTest:true, toneMapped:false});
-    const mesh=new THREE.Mesh(new THREE.PlaneGeometry(1.3,1.76), mat);
+    const mesh=new THREE.Mesh(new THREE.PlaneGeometry(1.3,2.47), mat);
     mesh.visible=false; scene.add(mesh);   // 高さ調整(stage)とは切り離し、常に目線基準
     const cardMesh=new THREE.Mesh(new THREE.PlaneGeometry(1.04,1.46), new THREE.MeshBasicMaterial({transparent:true, depthTest:true, toneMapped:false}));
     cardMesh.position.set(1.24,0,0.02); cardMesh.visible=false; mesh.add(cardMesh);   // 獲得カード（VRは右横／モバイルは中央でボタン切替）
     function rr(x,y,w,h,r){ ctx.beginPath(); ctx.moveTo(x+r,y); ctx.arcTo(x+w,y,x+w,y+h,r); ctx.arcTo(x+w,y+h,x,y+h,r);
         ctx.arcTo(x,y+h,x,y,r); ctx.arcTo(x,y,x+w,y,r); ctx.closePath(); }
-    function bg(){ ctx.clearRect(0,0,768,1040);
-        ctx.fillStyle="rgba(10,7,26,0.90)"; rr(24,24,720,992,40); ctx.fill();
+    function bg(){ ctx.clearRect(0,0,768,1460);
+        ctx.fillStyle="rgba(10,7,26,0.90)"; rr(24,24,720,1412,40); ctx.fill();
         ctx.strokeStyle="#d8b46a"; ctx.lineWidth=6; ctx.stroke(); }
     return {
         mesh,
         show(){ mesh.visible=true; }, hide(){ mesh.visible=false; },
         drawCountdown(text, sub, short){
             ctx.clearRect(0,0,768,864);
-            const top = short? 300 : 24, bh = short? 452 : 992;   // shortは高さ約2/3
+            const top = short? 300 : 24, bh = short? 452 : 1412;   // shortは高さ約2/3
             ctx.fillStyle="rgba(10,7,26,0.90)"; rr(24,top,720,bh,40); ctx.fill();
             ctx.strokeStyle="#d8b46a"; ctx.lineWidth=6; ctx.stroke();
             ctx.textAlign="center"; ctx.textBaseline="middle";
@@ -2656,9 +2663,9 @@ const worldHud=(function(){
                     ctx.fillText("獲得カード："+(d.card.rarity||""),384,396);
                     try{ const tg=(curTarget==="dino")?"dino":"artifact";
                          const im=cardImage(tg, d.card.idx, ()=>{ if(colData===d && colPage===0) worldHud.renderCollectPage(); });
-                         if(im.complete && im.naturalWidth) ctx.drawImage(im, 204, 440, 360, 540); }catch(_){}   // 1:1.5（大きめ）
+                         if(im.complete && im.naturalWidth) ctx.drawImage(im, 60, 430, 648, 972); }catch(_){}   // パネル幅90%（1:1.5）
                 }
-                ctx.fillStyle="rgba(226,216,255,.8)"; ctx.font="24px sans-serif"; ctx.fillText("右トリガー2回でスタンバイに戻る",384,1000);
+                ctx.fillStyle="rgba(226,216,255,.8)"; ctx.font="24px sans-serif"; ctx.fillText("右トリガー2回でスタンバイに戻る",384,1400);
             } else {
                 ctx.fillStyle="#e6c26a"; ctx.font="bold 40px sans-serif"; ctx.fillText("― タイム TOP5 ―",384,110);
                 const arr=d.list||[];
@@ -2668,7 +2675,7 @@ const worldHud=(function(){
                     ctx.fillText(e? (e.time.toFixed(1)+" 秒") : "---", 230, yy);
                     if(e){ ctx.fillStyle="rgba(200,190,230,.7)"; ctx.font="22px sans-serif"; ctx.fillText(e.date+" "+e.clock, 470, yy); }
                 }
-                ctx.textAlign="center"; ctx.fillStyle="rgba(226,216,255,.8)"; ctx.font="24px sans-serif"; ctx.fillText("右トリガー2回でスタンバイに戻る",384,1000);
+                ctx.textAlign="center"; ctx.fillStyle="rgba(226,216,255,.8)"; ctx.font="24px sans-serif"; ctx.fillText("右トリガー2回でスタンバイに戻る",384,1400);
             }
             tex.needsUpdate=true; mesh.visible=true;
         },
@@ -2687,7 +2694,7 @@ const worldHud=(function(){
                     ctx.fillText("獲得カード："+(d.calc.card.rarity||""),384,214);
                     try{ const tg=(typeof GAME!=="undefined"&&GAME.digTarget)?GAME.digTarget:curTarget;
                          const im=cardImage(tg, d.calc.card.idx, ()=>{ if(resData===d && resPage===0 && typeof worldHud!=="undefined") worldHud.renderResultPage(); });
-                         if(im.complete && im.naturalWidth) ctx.drawImage(im, 204, 268, 360, 540); }catch(_){}   // 1:1.5（大きめ）
+                         if(im.complete && im.naturalWidth) ctx.drawImage(im, 60, 250, 648, 972); }catch(_){}   // パネル幅90%（1:1.5）
                 }
             } else {
                 // ページB：全体スコア（計算式＋TOP5）
@@ -2857,7 +2864,6 @@ function updateResultBtn(){
     const inTA  = GAME.desktop && GAME.mode==="time" && TA.state==="results";
     const inCol = GAME.desktop && GAME.mode!=="time" && GAME.complete;
     const inResults = inTA || inCol;
-    const dt=document.getElementById("dTool"); if(dt) dt.style.display = inResults ? "none" : "";   // 結果中は道具ボタンを隠す
     const b=document.getElementById("taCardBtn"); if(!b) return;
     if(inTA){
         b.style.display="inline-block";
@@ -2876,7 +2882,27 @@ function updateTAButton(){
 }
 
 /* HUD更新 */
+function gamePhase(){   // ①standby ②count ③play ④result
+    if(!GAME.active) return "standby";
+    if(TA.state==="countdown") return "count";
+    if(TA.state==="run") return "play";
+    if(GAME.mode==="time"){ return TA.state==="results" ? "result" : "standby"; }
+    return GAME.complete ? "result" : "standby";
+}
+function updateHudButtons(){
+    if(!GAME.desktop) return;
+    const ph=gamePhase();
+    const set=(id,show)=>{ const e=document.getElementById(id); if(e && e.id!=="dTA" && e.id!=="taCardBtn") e.style.display = show ? "" : "none"; };
+    // ①②：リセット・記録・やめる のみ／④：聞いてみる・リセット・図鑑・記録・やめる／③：従来どおり
+    set("dAsk",  ph==="result" || ph==="play");
+    set("dTool", ph==="play");
+    set("dSite", ph==="play");
+    set("dDex",  ph==="result" || ph==="play");
+    set("dShowAll", ph==="play");
+    set("dReset", true); set("dRecords", true); set("dQuit", true);
+}
 function updateGoal(){
+    if(typeof updateHudButtons==="function") updateHudButtons();
     const el=document.getElementById("dGoal");
     const tgt=(GAME.digTarget==="dino")?"恐竜":"出土品";
     if(GAME.mode==="collect"){ el.textContent=`コレクション：${tgt} ${GAME.collectedCount} / 8 発掘（残り${8-GAME.collectedCount}）`; }

@@ -683,7 +683,9 @@ function cardImage(target, idx, onload){
 }
 function cardTexture(target, idx){
     const key=target+"_"+idx;
-    if(!_cardTexCache[key]){ _cardTexCache[key]=new THREE.TextureLoader().load(cardImgPath(target, idx)); }
+    if(!_cardTexCache[key]){ const t=new THREE.TextureLoader().load(cardImgPath(target, idx));
+        try{ t.colorSpace=THREE.SRGBColorSpace; }catch(_){ try{ t.encoding=THREE.sRGBEncoding; }catch(__){} }   // 退色防止
+        _cardTexCache[key]=t; }
     return _cardTexCache[key];
 }
 const TIME_LIMIT = 100; // タイムアタック秒数
@@ -1840,7 +1842,9 @@ function buildHologram(idx){
             const arr=(wasArr?o.material:[o.material]).map(m=>{ const c=m.clone(); c.depthTest=true; c.depthWrite=true; return c; });
             o.material=wasArr?arr:arr[0];
         }});
-        const mg=new THREE.Group(); mg.position.set(0.36,0.0, dino? -0.7 : -0.2); mg.add(model); g.add(mg); g.userData.mg=mg; g.userData.card=card;  // 恐竜は奥(-z)へさらに0.5m
+        const holoH = dino ? dinoHoloH(idx) : 0.5;
+        const nearBias = dino ? Math.max(0, (0.5 - holoH)) * 1.1 : 0;   // 小さいほどプレイヤー側へ（最大約+0.5m）
+        const mg=new THREE.Group(); mg.position.set(0.36,0.0, (dino? -0.7 : -0.2) + nearBias); mg.add(model); g.add(mg); g.userData.mg=mg; g.userData.card=card;  // 回転中心ごと手前へ
     } else g.userData.card=card;
     scene.add(g);
     holo={ group:g, idx, dino, art }; updateHologram(); sfxLocate();
@@ -2736,12 +2740,12 @@ const worldHud=(function(){
                     ctx.strokeStyle="rgba(216,180,106,.5)"; ctx.lineWidth=3; ctx.beginPath(); ctx.moveTo(lx,y-12); ctx.lineTo(rx,y-12); ctx.stroke();
                     ctx.fillStyle="#ffe066"; ctx.font="bold 34px sans-serif"; ctx.textAlign="left"; ctx.fillText("合計",lx,y+8); ctx.textAlign="right"; ctx.fillText(d.score+" pt",rx,y+8);
                 }
-                ctx.textAlign="center"; ctx.fillStyle="#e6c26a"; ctx.font="bold 32px sans-serif"; ctx.fillText("― TOP 5 ―",384,410);
-                for(let i=0;i<5;i++){ const e=d.list[i], yy=452+i*40, hit=e&&e.id!==undefined&&e.id===GAME.lastTAId;   // 新記録のみハイライト
+                ctx.textAlign="center"; ctx.fillStyle="#e6c26a"; ctx.font="bold 34px sans-serif"; ctx.fillText("― TOP 5 ―",384,430);
+                for(let i=0;i<5;i++){ const e=d.list[i], yy=510+i*68, hit=e&&e.id!==undefined&&e.id===GAME.lastTAId;   // 行間を広げる
                     ctx.fillStyle=hit?"#ffd34d":"rgba(226,216,255,.85)";
-                    ctx.textAlign="left"; ctx.font="bold 28px sans-serif"; ctx.fillText((i+1)+".",90,yy);
-                    ctx.textAlign="center"; ctx.font="bold 32px sans-serif"; ctx.fillText(e?(e.score+" pt"):"----",384,yy);
-                    ctx.textAlign="right"; ctx.font="bold 23px sans-serif"; ctx.fillText(e?((e.date||"")+(e.time?" "+e.time:"")):"",680,yy);
+                    ctx.textAlign="left"; ctx.font="bold 30px sans-serif"; ctx.fillText((i+1)+".",120,yy);
+                    ctx.textAlign="center"; ctx.font="bold 34px sans-serif"; ctx.fillText(e?(e.score+" pt"):"----",384,yy);
+                    ctx.textAlign="right"; ctx.font="bold 24px sans-serif"; ctx.fillText(e?((e.date||"")+(e.time?" "+e.time:"")):"",648,yy);
                 }
             }
             tex.needsUpdate=true; mesh.visible=true;
@@ -2757,14 +2761,14 @@ function updateWorldHud(){
     const up=new THREE.Vector3(0,1,0).applyQuaternion(camQ);
     const ph=(typeof gamePhase==="function")?gamePhase():"";
     const panelPhase=(ph==="result");
-    if(!renderer.xr.isPresenting && panelPhase){
-        // ④リザルト：画面高さの75%に合わせて上詰め（やや余白）
-        const dist=2.2;
+    if(panelPhase){
+        // ④リザルト：画面高さの90%に合わせて上詰め（アスペクト維持＝潰さない）
+        const dist = renderer.xr.isPresenting ? 1.9 : 2.2;
         const meshH=2.47;                                   // メッシュ本来の高さ
         const visH=2*dist*Math.tan(THREE.MathUtils.degToRad(camera.fov)/2);  // その距離で画面いっぱいの高さ
-        const targetH=visH*0.75;                            // 画面の75%
-        const s=targetH/meshH; worldHud.mesh.scale.set(s,s,1);
-        const topMargin=visH*0.04;                          // 上の余白
+        const targetH=visH*0.90;                            // 画面の90%
+        const s=targetH/meshH; worldHud.mesh.scale.set(s,s,1);   // 縦横同率＝潰れない
+        const topMargin=visH*0.04;
         const upOff = visH/2 - topMargin - targetH/2;       // 上詰め
         const p=cam.clone().addScaledVector(dir, dist).addScaledVector(up, upOff);
         worldHud.mesh.position.copy(p); worldHud.mesh.lookAt(cam);

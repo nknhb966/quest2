@@ -136,7 +136,7 @@
         background:#e23b57; color:#fff; font-size:10px; font-weight:900; letter-spacing:1px;
         padding:3px 7px; border-radius:5px; box-shadow:0 2px 8px rgba(0,0,0,.35); z-index:3; }
     /* タップで前面に拡大したトレカ */
-    #dexView{ position:fixed; inset:0; z-index:60; display:none; align-items:center; justify-content:center;
+    #dexView{ position:fixed; inset:0; z-index:12000; display:none; align-items:center; justify-content:center;
         background:rgba(10,6,20,.72); backdrop-filter:blur(3px); padding:20px; }
     #dexView.open{ display:flex; }
     .dexview-card{ position:relative; width:min(340px,80vw); aspect-ratio:1/1.4; border-radius:18px; overflow:hidden;
@@ -2680,9 +2680,10 @@ const worldHud=(function(){
                 if(d.card){
                     ctx.fillStyle=RARITY_COL[d.card.rarity]||"#fff"; ctx.font="bold 30px sans-serif";
                     ctx.fillText("獲得カード："+(d.card.rarity||""),384,190);
-                    try{ const tg=(curTarget==="dino")?"dino":"artifact";
-                         const im=cardImage(tg, d.card.idx, ()=>{ if(colData===d && colPage===0) worldHud.renderCollectPage(); });
-                         if(im.complete && im.naturalWidth) ctx.drawImage(im, 60, 224, 648, 972); }catch(_){}   // パネル幅90%
+                    const tg=(curTarget==="dino")?"dino":"artifact";
+                    const im=cardImage(tg, d.card.idx);
+                    if(im.complete && im.naturalWidth){ try{ ctx.drawImage(im, 60, 224, 648, 972); }catch(_){}}
+                    else { im.addEventListener("load", ()=>{ if(colData===d && colPage===0) worldHud.renderCollectPage(); }, {once:true}); }
                 }
                 ctx.fillStyle="rgba(226,216,255,.8)"; ctx.font="24px sans-serif"; ctx.fillText("右トリガー2回でスタンバイに戻る",384,1400);
             } else {
@@ -2705,7 +2706,7 @@ const worldHud=(function(){
             bg(); ctx.textAlign="center"; ctx.textBaseline="middle";
             const btnLabel = resPage===0 ? "▶ 全体のスコアを見る" : ("🎴 獲得カード："+(d.calc&&d.calc.card?(d.calc.card.rarity||""):""));
             if(resPage===0){
-                // 数字は大きく「pt」は半分。コンプリート等の文言は表示しない・上詰め
+                // コレクション結果と同一レイアウト：数字大＋単位半分・上詰め・カード90%・下部案内
                 const numTxt=String(d.score);
                 ctx.textAlign="left"; ctx.textBaseline="middle";
                 ctx.font="bold 96px sans-serif"; const nw=ctx.measureText(numTxt).width;
@@ -2717,10 +2718,12 @@ const worldHud=(function(){
                 if(d.calc&&d.calc.card){
                     ctx.fillStyle=RARITY_COL[d.calc.card.rarity]||"#fff"; ctx.font="bold 30px sans-serif";
                     ctx.fillText("獲得カード："+(d.calc.card.rarity||""),384,190);
-                    try{ const tg=(typeof GAME!=="undefined"&&GAME.digTarget)?GAME.digTarget:curTarget;
-                         const im=cardImage(tg, d.calc.card.idx, ()=>{ if(resData===d && resPage===0 && typeof worldHud!=="undefined") worldHud.renderResultPage(); });
-                         if(im.complete && im.naturalWidth) ctx.drawImage(im, 60, 224, 648, 972); }catch(_){}   // パネル幅90%
+                    const tg=(typeof GAME!=="undefined"&&GAME.digTarget)?GAME.digTarget:curTarget;
+                    const im=cardImage(tg, d.calc.card.idx);
+                    if(im.complete && im.naturalWidth){ try{ ctx.drawImage(im, 60, 224, 648, 972); }catch(_){}}
+                    else { im.addEventListener("load", ()=>{ if(resData===d && resPage===0) worldHud.renderResultPage(); }, {once:true}); }
                 }
+                ctx.fillStyle="rgba(226,216,255,.85)"; ctx.font="24px sans-serif"; ctx.fillText(GAME.desktop?"「スタンバイに戻る」で①へ":"右トリガー2回でスタンバイに戻る",384,1400);
             } else {
                 // ページB：全体スコア（計算式＋TOP5）
                 ctx.fillStyle="#f0d98a"; ctx.font="bold 44px sans-serif"; ctx.fillText("⏱ タイムアタック 結果",384,60);
@@ -2741,8 +2744,6 @@ const worldHud=(function(){
                     ctx.textAlign="right"; ctx.font="bold 23px sans-serif"; ctx.fillText(e?((e.date||"")+(e.time?" "+e.time:"")):"",680,yy);
                 }
             }
-            ctx.fillStyle="rgba(226,216,255,.85)"; ctx.font="bold 26px sans-serif"; ctx.textAlign="center"; ctx.textBaseline="middle";
-            ctx.fillText(GAME.desktop ? "「スタンバイに戻る」で①へ" : "右トリガー2回でスタンバイに戻る", 384, 1400);
             tex.needsUpdate=true; mesh.visible=true;
         }
     };
